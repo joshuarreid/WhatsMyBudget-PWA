@@ -27,7 +27,18 @@ Required:
 Optional:
 - `VITE_API_BASE_URL=http://localhost:8080` (default used only for local dev if not set)
 
+#### Vite preview allowed hosts (DigitalOcean)
+
+If you see an error like:
+
+> Blocked request. This host ("…") is not allowed.
+
+Set this env var in App Platform (or locally) so `vite preview` will accept the incoming Host header **without** hardcoding your app URL in the repo:
+
+- `VITE_PREVIEW_ALLOWED_HOSTS`
+  - Comma- or whitespace-separated hostnames.
+  - Example: `whatsmybudgetpwa-q9rzb.ondigitalocean.app`
+
 Notes:
 - Variables must be prefixed with `VITE_` to be exposed to the frontend.
 - Changing these requires a rebuild/redeploy on App Platform.
-
