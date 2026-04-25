@@ -2,6 +2,16 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+const parseAllowedHosts = (raw: string | undefined): string[] | undefined => {
+  if (!raw) return undefined
+  const hosts = raw
+    .split(/[\s,]+/)
+    .map((h) => h.trim())
+    .filter(Boolean)
+
+  return hosts.length ? hosts : undefined
+}
+
 export default defineConfig({
   plugins: [
     react(),
@@ -31,5 +41,17 @@ export default defineConfig({
     host: 'localhost',
     port: 3000,
     strictPort: true,
+  },
+  preview: {
+    // Use env vars so we don't hardcode deployment URLs in source.
+    //
+    // VITE_PREVIEW_ALLOWED_HOSTS: comma- or whitespace-separated hostnames,
+    // e.g. "whatsmybudgetpwa-q9rzb.ondigitalocean.app,example.com"
+    //
+    // If not set, we allow the usual local hosts only.
+    allowedHosts:
+      parseAllowedHosts(process.env.VITE_PREVIEW_ALLOWED_HOSTS) ??
+      parseAllowedHosts(process.env.VITE_ALLOWED_HOSTS) ??
+      ['localhost', '127.0.0.1'],
   },
 })
