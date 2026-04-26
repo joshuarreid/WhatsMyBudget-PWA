@@ -10,13 +10,13 @@ const formatCurrency = (value: number) =>
 
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n))
 
-const ringStyle = (projectedFraction: number): CSSProperties => {
-  // green portion = actual, yellow portion = projected
+const ringStyle = (projectedFraction: number, colorActual: string, colorProjected: string): CSSProperties => {
+  // actual portion, projected portion
   const projected = clamp01(projectedFraction)
   const projectedDeg = projected * 360
 
   return {
-    background: `conic-gradient(#f5c542 0deg ${projectedDeg}deg, #1fbf75 ${projectedDeg}deg 360deg)`,
+    background: `conic-gradient(${colorProjected} 0deg ${projectedDeg}deg, ${colorActual} ${projectedDeg}deg 360deg)`,
   }
 }
 
@@ -24,19 +24,18 @@ const RingStat = (props: { label: string; summary: CriticalitySummary }) => {
   const totalAmount = props.summary.actualTotal + props.summary.projectedTotal
   const projectedFraction = totalAmount === 0 ? 0 : props.summary.projectedTotal / totalAmount
 
-  return (
-    <div className="tt-crit-stat">
-      <div className="tt-crit-title">{props.label}</div>
+  // Use blue for nonessential, green for essential
+  const isNonessential = props.label.toLowerCase().includes('nonessential')
+  const colorActual = isNonessential ? '#3b82f6' : '#1fbf75'
+  const colorProjected = '#f5c542'
 
-      <div className="tt-crit-ring" style={ringStyle(projectedFraction)}>
+  return (
+    <div className="tt-crit-stat tt-crit-ring-box">
+      <div className="tt-crit-title">{props.label}</div>
+      <div className="tt-crit-ring" style={ringStyle(projectedFraction, colorActual, colorProjected)}>
         <div className="tt-crit-ring-inner">
           <div className="tt-crit-amount">{formatCurrency(totalAmount)}</div>
         </div>
-      </div>
-
-      <div className="tt-crit-breakdown">
-        <span className="tt-crit-actual">Actual: {formatCurrency(props.summary.actualTotal)}</span>
-        <span className="tt-crit-projected">Projected: {formatCurrency(props.summary.projectedTotal)}</span>
       </div>
     </div>
   )
@@ -200,7 +199,7 @@ export const CriticalitySummaryWidget = (props: {
   return (
     <>
       <button type="button" className="tt-crit-widget tt-crit-widget-click" onClick={onWidgetOpen}>
-        <div className="tt-crit-grid">
+        <div className="tt-crit-ring-row">
           <RingStat label="Essential" summary={props.essential} />
           <RingStat label="Nonessential" summary={props.nonessential} />
         </div>
