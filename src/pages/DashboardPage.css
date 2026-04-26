@@ -496,6 +496,9 @@
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 12px;
     overflow: hidden;
+    max-height: 340px;
+    overflow: auto;
+    position: relative;
 }
 
 .tt-crit-table {
@@ -518,6 +521,22 @@
 .tt-crit-table tbody td {
     padding: 10px 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tt-crit-table tfoot {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  background: rgba(20, 20, 22, 0.98);
+  box-shadow: 0 -2px 8px 0 rgba(0,0,0,0.08);
+}
+
+.tt-crit-table-total-row td {
+  font-weight: 900;
+  color: var(--tt-color-text);
+  background: rgba(30, 30, 32, 0.98);
+  border-top: 2px solid rgba(255,255,255,0.10);
+  box-shadow: 0 -1px 4px 0 rgba(0,0,0,0.04);
 }
 
 .tt-crit-table tbody tr:last-child td {

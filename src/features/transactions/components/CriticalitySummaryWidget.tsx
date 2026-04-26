@@ -124,6 +124,10 @@ const BreakdownTable = (props: {
     return <div className="tt-empty">No transactions in this bucket.</div>
   }
 
+  // Calculate totals
+  const totalActual = props.rows.reduce((sum, r) => sum + r.actualTotal, 0)
+  const totalProjected = props.rows.reduce((sum, r) => sum + r.projectedTotal, 0)
+
   return (
     <div className="tt-crit-table-wrap">
       <table className="tt-crit-table">
@@ -158,6 +162,17 @@ const BreakdownTable = (props: {
             )
           })}
         </tbody>
+        <tfoot>
+          <tr className="tt-crit-table-total-row">
+            <td className="tt-crit-cat"><strong>Total</strong></td>
+            <td style={{ textAlign: 'right' }}>
+              <span className="tt-crit-actual-amt">{formatCurrency(totalActual)}</span>
+              {Math.abs(totalProjected) > 0 && (
+                <span className="tt-crit-projected-amt"> + {formatCurrency(totalProjected)}</span>
+              )}
+            </td>
+          </tr>
+        </tfoot>
       </table>
     </div>
   )
