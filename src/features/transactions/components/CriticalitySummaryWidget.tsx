@@ -3,6 +3,7 @@ import type { CriticalitySummary } from '../../../api/transactions/criticalitySu
 import type { CategoryBreakdownRow } from '../hooks/useCriticalitySummaries'
 import type { BudgetTransaction } from '../../../api/transactions/transactions.types'
 import type { ProjectedTransaction } from '../../../api/projectedTransactions/projectedTransactions.types'
+import { Modal } from '../../../components/Modal'
 
 const formatCurrency = (value: number) =>
   value.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
@@ -176,6 +177,7 @@ export const CriticalitySummaryWidget = (props: {
 }) => {
   const [tab, setTab] = useState<'essential' | 'nonessential'>('essential')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [modalOpen, setModalOpen] = useState(false)
 
   const activeRows = tab === 'essential' ? props.essentialByCategory : props.nonessentialByCategory
   const activeActual = tab === 'essential' ? props.essentialActual : props.nonessentialActual
@@ -235,23 +237,16 @@ export const CriticalitySummaryWidget = (props: {
         </button>
       </div>
       <div className="tt-crit-modal-content" role="region" aria-label="Category breakdown">
-        {selectedCategory ? (
-          <div className="tt-crit-category-detail">
-            <button
-              type="button"
-              className="tt-back-btn"
-              style={{ marginBottom: 16 }}
-              onClick={() => setSelectedCategory(null)}
-            >
-              ← Back to categories
-            </button>
-            <TxnList title="Transactions" variant="actual" items={categoryActualTxns} />
-            <TxnList title="Projected" variant="projected" items={categoryProjectedTxns} />
-          </div>
-        ) : (
-          <BreakdownTable rows={activeRows} onSelectCategory={(c) => setSelectedCategory(c)} />
-        )}
+        <BreakdownTable rows={activeRows} onSelectCategory={(c) => { setSelectedCategory(c); setModalOpen(true); }} />
       </div>
+      <Modal
+        isOpen={modalOpen && !!selectedCategory}
+        title={selectedCategory ? `Transactions for ${selectedCategory}` : ''}
+        onClose={() => { setModalOpen(false); setSelectedCategory(null); }}
+      >
+        <TxnList title="Projected" variant="projected" items={categoryProjectedTxns} />
+        <TxnList title="Transactions" variant="actual" items={categoryActualTxns} />
+      </Modal>
     </div>
   )
 }
