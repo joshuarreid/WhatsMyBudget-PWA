@@ -1,12 +1,7 @@
 import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useProfileStore } from '../store/useProfileStore'
 import type { Account } from '../store/useProfileStore'
-
-const PROFILE_ICONS: Record<Account, string> = {
-  josh: '👨‍💼',
-  joint: '🤝',
-  anna: '👩‍💼',
-}
 
 const PROFILE_LABELS: Record<Account, string> = {
   josh: 'Josh',
@@ -21,100 +16,91 @@ export function ProfileSwitcher() {
   const setSelectedAccount = useProfileStore((state) => state.setProfile)
   const [open, setOpen] = useState(false)
 
+  // Only show the other profiles (not the selected one) as options
+  const otherAccounts = ACCOUNTS.filter((acct) => acct !== selectedAccount)
+
   return (
-    <div style={{
-      position: 'fixed',
-      bottom: 100,
-      right: 24,
-      zIndex: 9999, // ensure on top
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'flex-end',
-      borderRadius: 24,
-      minWidth: 80,
-      minHeight: 80,
-    }}>
-      {open ? (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 16,
-          marginBottom: 8,
-          background: 'rgba(30,30,40,0.98)',
-          borderRadius: 18,
-          boxShadow: '0 2px 12px 0 rgba(0,0,0,0.18)',
-          padding: 16,
-        }}>
-          {ACCOUNTS.map((acct) => (
-            <button
+    <div
+      style={{
+        position: 'fixed',
+        bottom: 100,
+        right: 24,
+        zIndex: 9999,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-end',
+        pointerEvents: 'none',
+      }}
+    >
+      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', pointerEvents: 'auto' }}>
+        {/* Animated profile options */}
+        <AnimatePresence>
+          {open && otherAccounts.map((acct, idx) => (
+            <motion.button
               key={acct}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: -70 - idx * 64 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30, delay: idx * 0.07 }}
               onClick={() => {
                 setSelectedAccount(acct)
                 setOpen(false)
               }}
               style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                border: 'none',
-                background: 'none',
-                cursor: 'pointer',
-                outline: 'none',
-                opacity: selectedAccount === acct ? 1 : 0.7,
-                transform: selectedAccount === acct ? 'scale(1.08)' : 'scale(1)',
-                transition: 'all 0.15s',
-              }}
-              aria-label={`Switch to ${PROFILE_LABELS[acct]}`}
-            >
-              <span style={{
-                fontSize: 38,
+                position: 'absolute',
+                bottom: 0,
+                right: 0,
                 width: 54,
                 height: 54,
                 borderRadius: '50%',
-                background: selectedAccount === acct ? '#3b82f6' : '#23232b',
-                color: '#fff',
+                border: '2px solid #bbb',
+                background: '#f3f4f6',
+                color: '#222',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginBottom: 4,
-                border: selectedAccount === acct ? '3px solid #fff' : '2px solid #444',
-                boxShadow: selectedAccount === acct ? '0 2px 8px 0 rgba(59,130,246,0.18)' : undefined,
-                transition: 'all 0.15s',
-              }}>{PROFILE_ICONS[acct]}</span>
-              <span style={{ fontSize: 13, color: '#fff', fontWeight: 600 }}>{PROFILE_LABELS[acct]}</span>
-            </button>
+                fontWeight: 700,
+                fontSize: 16,
+                cursor: 'pointer',
+                outline: 'none',
+                boxShadow: '0 2px 8px 0 rgba(37,99,235,0.10)',
+                marginBottom: 0,
+                pointerEvents: open ? 'auto' : 'none',
+              }}
+              aria-label={`Switch to ${PROFILE_LABELS[acct]}`}
+              tabIndex={open ? 0 : -1}
+            >
+              {PROFILE_LABELS[acct]}
+            </motion.button>
           ))}
-        </div>
-      ) : null}
-      <button
-        onClick={() => setOpen((v) => !v)}
-        aria-label={open ? 'Close profile switcher' : `Current profile: ${PROFILE_LABELS[selectedAccount]}`}
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          border: 'none',
-          background: 'none',
-          cursor: 'pointer',
-          outline: 'none',
-        }}
-      >
-        <span style={{
-          fontSize: 38,
-          width: 54,
-          height: 54,
-          borderRadius: '50%',
-          background: '#3b82f6',
-          color: '#fff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: 4,
-          border: '3px solid #fff',
-          boxShadow: '0 2px 8px 0 rgba(59,130,246,0.18)',
-        }}>{PROFILE_ICONS[selectedAccount]}</span>
-        <span style={{ fontSize: 13, color: '#fff', fontWeight: 600 }}>{PROFILE_LABELS[selectedAccount]}</span>
-      </button>
+        </AnimatePresence>
+        {/* Main profile button */}
+        <button
+          onClick={() => setOpen((v) => !v)}
+          aria-label={open ? 'Close profile switcher' : `Current profile: ${PROFILE_LABELS[selectedAccount]}`}
+          style={{
+            width: 54,
+            height: 54,
+            borderRadius: '50%',
+            border: '3px solid #2563eb',
+            background: '#2563eb',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: 700,
+            fontSize: 16,
+            cursor: 'pointer',
+            outline: 'none',
+            boxShadow: '0 2px 8px 0 rgba(37,99,235,0.18)',
+            margin: '0 auto',
+            position: 'relative',
+            zIndex: 2,
+          }}
+        >
+          {PROFILE_LABELS[selectedAccount]}
+        </button>
+      </div>
     </div>
   )
 }
