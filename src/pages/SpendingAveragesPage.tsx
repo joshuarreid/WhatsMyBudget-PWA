@@ -283,232 +283,143 @@ export function SpendingAveragesPage() {
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 10,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
                   padding: 18,
                   minHeight: 120,
-                  border: '1.5px solid rgba(141, 176, 255, 0.25)',
-                  background: 'linear-gradient(135deg, rgba(141,176,255,0.10) 0%, rgba(15,17,21,0.85) 100%)',
-                  boxShadow: '0 2px 16px 0 rgba(141,176,255,0.07)',
-                  transition: 'box-shadow 0.18s',
+                  background: 'rgba(20,22,28,0.95)',
+                  borderRadius: 16,
+                  boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)',
+                  border: 'none',
                   position: 'relative',
                   overflow: 'hidden',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                  <div>
-                    <div style={{ fontWeight: 950, fontSize: 18, letterSpacing: '0.01em', color: '#e6eef8' }}>⛽ Gas</div>
-                  </div>
-                  <button
-                    style={{ background: 'none', border: 'none', padding: 0, margin: 0, cursor: 'pointer', fontWeight: 950, color: '#8db0ff', fontSize: 28, letterSpacing: '-0.01em' }}
-                    onClick={() => { setModalMetric('gas'); setModalOpen(true) }}
-                    aria-label="Show gas transactions"
-                  >
-                    {formatMoney(gasWeeklyAverage)}
-                  </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16, color: '#8db0ff' }}>
+                  <span>⛽</span> <span>Gas</span>
                 </div>
-                <div style={{ fontSize: 13, color: '#b0c4de', marginTop: 10, display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                  <span>Weeks with gas: <b style={{ color: '#e6eef8' }}>{gasWeeks.length}</b></span>
-                  {gasWeeks.length > 0 && (
-                    <span>Total: <b style={{ color: '#e6eef8' }}>{formatMoney(gasWeeks.reduce((sum, w) => sum + w.totalAmount, 0))}</b></span>
-                  )}
+                <div style={{ fontWeight: 900, fontSize: 36, color: '#8db0ff', margin: '8px 0 0 0', letterSpacing: '-0.01em', textAlign: 'center' }}>
+                  {formatMoney(gasWeeklyAverage)}
                 </div>
-                {/* Decorative accent */}
-                <div style={{
-                  position: 'absolute',
-                  right: -30,
-                  top: -30,
-                  width: 90,
-                  height: 90,
-                  background: 'radial-gradient(circle, rgba(141,176,255,0.18) 0%, rgba(141,176,255,0.00) 70%)',
-                  pointerEvents: 'none',
-                  zIndex: 0,
-                }} />
+                <div style={{ fontSize: 12, color: 'rgba(230,238,248,0.60)', marginTop: 4, textAlign: 'center' }}>
+                  {gasWeeks.length} weeks · {formatMoney(gasWeeks.reduce((sum, w) => sum + w.totalAmount, 0))}
+                </div>
               </div>
-              {/* Food Card - mimic other tiles */}
+              {/* Food Card */}
               <div
                 className="tt-row"
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 10,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
                   padding: 18,
                   minHeight: 120,
-                  border: '1.5px solid rgba(255, 230, 176, 0.25)',
-                  background: 'linear-gradient(135deg, rgba(255,230,176,0.10) 0%, rgba(15,17,21,0.85) 100%)',
-                  boxShadow: '0 2px 16px 0 rgba(255,230,176,0.07)',
-                  transition: 'box-shadow 0.18s',
+                  background: 'rgba(28,24,12,0.95)',
+                  borderRadius: 16,
+                  boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)',
+                  border: 'none',
                   position: 'relative',
                   overflow: 'hidden',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                  <div>
-                    <div style={{ fontWeight: 950, fontSize: 18, letterSpacing: '0.01em', color: '#ffe6b0' }}>🍽️🥗 Food</div>
-                  </div>
-                  <div style={{ fontWeight: 950, color: '#ffe6b0', fontSize: 28, letterSpacing: '-0.01em' }}>
-                    {formatMoney((diningOutWeeklyAverage + groceriesWeeklyAverage) / 2)}
-                  </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16, color: '#ffe6b0' }}>
+                  <span>🍽️🥗</span> <span>Food</span>
                 </div>
-                <div style={{ fontSize: 13, color: '#ffe6b0', marginTop: 10, display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                  <span>Weeks with Food: <b style={{ color: '#e6eef8' }}>{Math.max(diningOutWeeks.length, groceriesWeeks.length)}</b></span>
-                  <span>Total: <b style={{ color: '#e6eef8' }}>{formatMoney(diningOutWeeks.reduce((sum, w) => sum + w.totalAmount, 0) + groceriesWeeks.reduce((sum, w) => sum + w.totalAmount, 0))}</b></span>
+                <div style={{ fontWeight: 900, fontSize: 36, color: '#ffe6b0', margin: '8px 0 0 0', letterSpacing: '-0.01em', textAlign: 'center' }}>
+                  {formatMoney((diningOutWeeklyAverage + groceriesWeeklyAverage) / 2)}
                 </div>
-                <div style={{
-                  position: 'absolute',
-                  right: -30,
-                  top: -30,
-                  width: 90,
-                  height: 90,
-                  background: 'radial-gradient(circle, rgba(255,230,176,0.18) 0%, rgba(255,230,176,0.00) 70%)',
-                  pointerEvents: 'none',
-                  zIndex: 0,
-                }} />
+                <div style={{ fontSize: 12, color: 'rgba(230,238,248,0.60)', marginTop: 4, textAlign: 'center' }}>
+                  {Math.max(diningOutWeeks.length, groceriesWeeks.length)} weeks · {formatMoney(diningOutWeeks.reduce((sum, w) => sum + w.totalAmount, 0) + groceriesWeeks.reduce((sum, w) => sum + w.totalAmount, 0))}
+                </div>
               </div>
-              {/* Grouped Food Cards */}
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                {/* Dining Out Card */}
-                <div
-                  className="tt-row"
-                  style={{
-                    flex: 1,
-                    minWidth: 220,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 10,
-                    padding: 18,
-                    minHeight: 120,
-                    border: '1.5px solid rgba(255, 176, 141, 0.25)',
-                    background: 'linear-gradient(135deg, rgba(255,176,141,0.10) 0%, rgba(15,17,21,0.85) 100%)',
-                    boxShadow: '0 2px 16px 0 rgba(255,176,141,0.07)',
-                    transition: 'box-shadow 0.18s',
-                    position: 'relative',
-                    overflow: 'hidden',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                    <div>
-                      <div style={{ fontWeight: 950, fontSize: 18, letterSpacing: '0.01em', color: '#ffe6b0' }}>🍽️ Dining Out</div>
-                    </div>
-                    <button
-                      style={{ background: 'none', border: 'none', padding: 0, margin: 0, cursor: 'pointer', fontWeight: 950, color: '#ffb08d', fontSize: 28, letterSpacing: '-0.01em' }}
-                      onClick={() => { setModalMetric('diningOut'); setModalOpen(true) }}
-                      aria-label="Show dining out transactions"
-                    >
-                      {formatMoney(diningOutWeeklyAverage)}
-                    </button>
-                  </div>
-                  <div style={{ fontSize: 13, color: '#ffe6b0', marginTop: 10, display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                    <span>Weeks with dining out: <b style={{ color: '#e6eef8' }}>{diningOutWeeks.length}</b></span>
-                    {diningOutWeeks.length > 0 && (
-                      <span>Total: <b style={{ color: '#e6eef8' }}>{formatMoney(diningOutWeeks.reduce((sum, w) => sum + w.totalAmount, 0))}</b></span>
-                    )}
-                  </div>
-                  <div style={{
-                    position: 'absolute',
-                    right: -30,
-                    top: -30,
-                    width: 90,
-                    height: 90,
-                    background: 'radial-gradient(circle, rgba(255,176,141,0.18) 0%, rgba(255,176,141,0.00) 70%)',
-                    pointerEvents: 'none',
-                    zIndex: 0,
-                  }} />
+              {/* Dining Out Card */}
+              <div
+                className="tt-row"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  padding: 18,
+                  minHeight: 120,
+                  background: 'rgba(28,16,12,0.95)',
+                  borderRadius: 16,
+                  boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)',
+                  border: 'none',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16, color: '#ffb08d' }}>
+                  <span>🍽️</span> <span>Dining Out</span>
                 </div>
-                {/* Groceries Card */}
-                <div
-                  className="tt-row"
-                  style={{
-                    flex: 1,
-                    minWidth: 220,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 10,
-                    padding: 18,
-                    minHeight: 120,
-                    border: '1.5px solid rgba(176, 255, 141, 0.25)',
-                    background: 'linear-gradient(135deg, rgba(176,255,141,0.10) 0%, rgba(15,17,21,0.85) 100%)',
-                    boxShadow: '0 2px 16px 0 rgba(176,255,141,0.07)',
-                    transition: 'box-shadow 0.18s',
-                    position: 'relative',
-                    overflow: 'hidden',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                    <div>
-                      <div style={{ fontWeight: 950, fontSize: 18, letterSpacing: '0.01em', color: '#b0ff8d' }}>🛒 Groceries</div>
-                    </div>
-                    <button
-                      style={{ background: 'none', border: 'none', padding: 0, margin: 0, cursor: 'pointer', fontWeight: 950, color: '#b0ff8d', fontSize: 28, letterSpacing: '-0.01em' }}
-                      onClick={() => { setModalMetric('groceries'); setModalOpen(true) }}
-                      aria-label="Show groceries transactions"
-                    >
-                      {formatMoney(groceriesWeeklyAverage)}
-                    </button>
-                  </div>
-                  <div style={{ fontSize: 13, color: '#b0ff8d', marginTop: 10, display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                    <span>Weeks with groceries: <b style={{ color: '#e6eef8' }}>{groceriesWeeks.length}</b></span>
-                    {groceriesWeeks.length > 0 && (
-                      <span>Total: <b style={{ color: '#e6eef8' }}>{formatMoney(groceriesWeeks.reduce((sum, w) => sum + w.totalAmount, 0))}</b></span>
-                    )}
-                  </div>
-                  <div style={{
-                    position: 'absolute',
-                    right: -30,
-                    top: -30,
-                    width: 90,
-                    height: 90,
-                    background: 'radial-gradient(circle, rgba(176,255,141,0.18) 0%, rgba(176,255,141,0.00) 70%)',
-                    pointerEvents: 'none',
-                    zIndex: 0,
-                  }} />
+                <div style={{ fontWeight: 900, fontSize: 36, color: '#ffb08d', margin: '8px 0 0 0', letterSpacing: '-0.01em', textAlign: 'center' }}>
+                  {formatMoney(diningOutWeeklyAverage)}
                 </div>
-                {/* Social Card */}
-                <div
-                  className="tt-row"
-                  style={{
-                    flex: 1,
-                    minWidth: 220,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 10,
-                    padding: 18,
-                    minHeight: 120,
-                    border: '1.5px solid rgba(176, 141, 255, 0.25)',
-                    background: 'linear-gradient(135deg, rgba(176,141,255,0.10) 0%, rgba(15,17,21,0.85) 100%)',
-                    boxShadow: '0 2px 16px 0 rgba(176,141,255,0.07)',
-                    transition: 'box-shadow 0.18s',
-                    position: 'relative',
-                    overflow: 'hidden',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                    <div>
-                      <div style={{ fontWeight: 950, fontSize: 18, letterSpacing: '0.01em', color: '#b08dff' }}>🎉 Social</div>
-                    </div>
-                    <button
-                      style={{ background: 'none', border: 'none', padding: 0, margin: 0, cursor: 'pointer', fontWeight: 950, color: '#b08dff', fontSize: 28, letterSpacing: '-0.01em' }}
-                      onClick={() => { setModalMetric('social'); setModalOpen(true) }}
-                      aria-label="Show social transactions"
-                    >
-                      {formatMoney(socialWeeklyAverage)}
-                    </button>
-                  </div>
-                  <div style={{ fontSize: 13, color: '#b08dff', marginTop: 10, display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                    <span>Weeks with social: <b style={{ color: '#e6eef8' }}>{socialWeeks.length}</b></span>
-                    {socialWeeks.length > 0 && (
-                      <span>Total: <b style={{ color: '#e6eef8' }}>{formatMoney(socialWeeks.reduce((sum, w) => sum + w.totalAmount, 0))}</b></span>
-                    )}
-                  </div>
-                  <div style={{
-                    position: 'absolute',
-                    right: -30,
-                    top: -30,
-                    width: 90,
-                    height: 90,
-                    background: 'radial-gradient(circle, rgba(176,141,255,0.18) 0%, rgba(176,141,255,0.00) 70%)',
-                    pointerEvents: 'none',
-                    zIndex: 0,
-                  }} />
+                <div style={{ fontSize: 12, color: 'rgba(230,238,248,0.60)', marginTop: 4, textAlign: 'center' }}>
+                  {diningOutWeeks.length} weeks · {formatMoney(diningOutWeeks.reduce((sum, w) => sum + w.totalAmount, 0))}
+                </div>
+              </div>
+              {/* Groceries Card */}
+              <div
+                className="tt-row"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  padding: 18,
+                  minHeight: 120,
+                  background: 'rgba(16,28,12,0.95)',
+                  borderRadius: 16,
+                  boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)',
+                  border: 'none',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16, color: '#b0ff8d' }}>
+                  <span>🛒</span> <span>Groceries</span>
+                </div>
+                <div style={{ fontWeight: 900, fontSize: 36, color: '#b0ff8d', margin: '8px 0 0 0', letterSpacing: '-0.01em', textAlign: 'center' }}>
+                  {formatMoney(groceriesWeeklyAverage)}
+                </div>
+                <div style={{ fontSize: 12, color: 'rgba(230,238,248,0.60)', marginTop: 4, textAlign: 'center' }}>
+                  {groceriesWeeks.length} weeks · {formatMoney(groceriesWeeks.reduce((sum, w) => sum + w.totalAmount, 0))}
+                </div>
+              </div>
+              {/* Social Card */}
+              <div
+                className="tt-row"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  padding: 18,
+                  minHeight: 120,
+                  background: 'rgba(28,12,40,0.95)',
+                  borderRadius: 16,
+                  boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)',
+                  border: 'none',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16, color: '#b08dff' }}>
+                  <span>🎉</span> <span>Social</span>
+                </div>
+                <div style={{ fontWeight: 900, fontSize: 36, color: '#b08dff', margin: '8px 0 0 0', letterSpacing: '-0.01em', textAlign: 'center' }}>
+                  {formatMoney(socialWeeklyAverage)}
+                </div>
+                <div style={{ fontSize: 12, color: 'rgba(230,238,248,0.60)', marginTop: 4, textAlign: 'center' }}>
+                  {socialWeeks.length} weeks · {formatMoney(socialWeeks.reduce((sum, w) => sum + w.totalAmount, 0))}
                 </div>
               </div>
               {/* ...other metric cards... */}
