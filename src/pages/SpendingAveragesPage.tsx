@@ -271,6 +271,10 @@ export function SpendingAveragesPage() {
               {/* Gas Card Example */}
               <div
                 className="tt-row"
+                role="button"
+                tabIndex={0}
+                onClick={() => { setModalMetric('gas'); setModalOpen(true) }}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setModalMetric('gas'); setModalOpen(true) } }}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -285,7 +289,11 @@ export function SpendingAveragesPage() {
                   border: 'none',
                   position: 'relative',
                   overflow: 'hidden',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  transition: 'box-shadow 0.18s',
                 }}
+                aria-label="Show gas transactions"
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16, color: '#8db0ff' }}>
                   <span>⛽</span> <span>Gas</span>
@@ -300,6 +308,10 @@ export function SpendingAveragesPage() {
               {/* Food Card */}
               <div
                 className="tt-row"
+                role="button"
+                tabIndex={0}
+                onClick={() => { setModalMetric('food'); setModalOpen(true) }}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setModalMetric('food'); setModalOpen(true) } }}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -314,7 +326,11 @@ export function SpendingAveragesPage() {
                   border: 'none',
                   position: 'relative',
                   overflow: 'hidden',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  transition: 'box-shadow 0.18s',
                 }}
+                aria-label="Show food transactions"
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16, color: '#ffe6b0' }}>
                   <span>🍽️🥗</span> <span>Food</span>
@@ -329,6 +345,10 @@ export function SpendingAveragesPage() {
               {/* Dining Out Card */}
               <div
                 className="tt-row"
+                role="button"
+                tabIndex={0}
+                onClick={() => { setModalMetric('diningOut'); setModalOpen(true) }}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setModalMetric('diningOut'); setModalOpen(true) } }}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -343,7 +363,11 @@ export function SpendingAveragesPage() {
                   border: 'none',
                   position: 'relative',
                   overflow: 'hidden',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  transition: 'box-shadow 0.18s',
                 }}
+                aria-label="Show dining out transactions"
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16, color: '#ffb08d' }}>
                   <span>🍽️</span> <span>Dining Out</span>
@@ -358,6 +382,10 @@ export function SpendingAveragesPage() {
               {/* Groceries Card */}
               <div
                 className="tt-row"
+                role="button"
+                tabIndex={0}
+                onClick={() => { setModalMetric('groceries'); setModalOpen(true) }}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setModalMetric('groceries'); setModalOpen(true) } }}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -372,7 +400,11 @@ export function SpendingAveragesPage() {
                   border: 'none',
                   position: 'relative',
                   overflow: 'hidden',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  transition: 'box-shadow 0.18s',
                 }}
+                aria-label="Show groceries transactions"
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16, color: '#b0ff8d' }}>
                   <span>🛒</span> <span>Groceries</span>
@@ -387,6 +419,10 @@ export function SpendingAveragesPage() {
               {/* Social Card */}
               <div
                 className="tt-row"
+                role="button"
+                tabIndex={0}
+                onClick={() => { setModalMetric('social'); setModalOpen(true) }}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setModalMetric('social'); setModalOpen(true) } }}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -401,7 +437,11 @@ export function SpendingAveragesPage() {
                   border: 'none',
                   position: 'relative',
                   overflow: 'hidden',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  transition: 'box-shadow 0.18s',
                 }}
+                aria-label="Show social transactions"
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16, color: '#b08dff' }}>
                   <span>🎉</span> <span>Social</span>
