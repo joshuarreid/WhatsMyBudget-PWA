@@ -349,17 +349,46 @@ export function SpendingAveragesPage() {
                 padding: 6,
               }}
             >
-              {/* Gas Card Example using weeks */}
-              <div className="tt-row" style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14, minHeight: 110 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
+              {/* Modern Gas Card Example using weeks */}
+              <div
+                className="tt-row"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 10,
+                  padding: 18,
+                  minHeight: 120,
+                  border: '1.5px solid rgba(141, 176, 255, 0.25)',
+                  background: 'linear-gradient(135deg, rgba(141,176,255,0.10) 0%, rgba(15,17,21,0.85) 100%)',
+                  boxShadow: '0 2px 16px 0 rgba(141,176,255,0.07)',
+                  transition: 'box-shadow 0.18s',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                   <div>
-                    <div style={{ fontWeight: 950 }}>Gas</div>
+                    <div style={{ fontWeight: 950, fontSize: 18, letterSpacing: '0.01em', color: '#e6eef8' }}>⛽ Gas</div>
                   </div>
-                  <div style={{ fontWeight: 950, color: '#8db0ff' }}>{formatMoney(gasWeeklyAverage)}</div>
+                  <div style={{ fontWeight: 950, color: '#8db0ff', fontSize: 28, letterSpacing: '-0.01em' }}>{formatMoney(gasWeeklyAverage)}</div>
                 </div>
-                <div style={{ fontSize: 12, color: 'rgba(230, 238, 248, 0.72)' }}>
-                  Weeks with gas transactions: {gasWeeks.length}
+                <div style={{ fontSize: 13, color: '#b0c4de', marginTop: 10, display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                  <span>Weeks with gas: <b style={{ color: '#e6eef8' }}>{gasWeeks.length}</b></span>
+                  {gasWeeks.length > 0 && (
+                    <span>Total: <b style={{ color: '#e6eef8' }}>{formatMoney(gasWeeks.reduce((sum, w) => sum + w.totalAmount, 0))}</b></span>
+                  )}
                 </div>
+                {/* Decorative accent */}
+                <div style={{
+                  position: 'absolute',
+                  right: -30,
+                  top: -30,
+                  width: 90,
+                  height: 90,
+                  background: 'radial-gradient(circle, rgba(141,176,255,0.18) 0%, rgba(141,176,255,0.00) 70%)',
+                  pointerEvents: 'none',
+                  zIndex: 0,
+                }} />
               </div>
               {/* ...other metric cards... */}
             </div>
