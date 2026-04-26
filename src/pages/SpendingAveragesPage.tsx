@@ -7,6 +7,7 @@ import { useWeeklyAverage } from '../features/transactions/hooks/useWeeklyAverag
 import './DashboardPage.css'
 import { TransactionList } from '../features/transactions/components/TransactionList'
 import { Modal } from '../components/Modal'
+import type { BudgetTransaction } from '../api/transactions/transactions.types'
 
 const ACCOUNTS = ['josh', 'joint', 'anna'] as const
 
@@ -122,30 +123,28 @@ export function SpendingAveragesPage() {
   // Use only the transactions for the selected account
   const allTransactions = useMemo(() => {
     if (selectedAccount === 'joint') {
-      // Use jointTransactions from jointTxData if present
-      return jointTxData?.jointTransactions?.transactions ?? jointTxData?.transactions ?? []
+      // Use transactions from jointTxData
+      return jointTxData?.transactions ?? []
     } else {
-      // For personal accounts, use both personal and joint transactions from the same API response
-      const personal = personalTxData?.personalTransactions?.transactions ?? personalTxData?.transactions ?? []
-      const joint = personalTxData?.jointTransactions?.transactions ?? []
-      return [...personal, ...joint]
+      // For personal accounts, use transactions from personalTxData
+      return personalTxData?.transactions ?? []
     }
   }, [personalTxData, jointTxData, selectedAccount])
 
   // Calculate weeks for all transactions (for Gas, Dining Out, Groceries)
-  const gasTransactions = allTransactions.filter((t) => classifyMetric(t.category) === 'gas')
+  const gasTransactions = allTransactions.filter((t: BudgetTransaction) => classifyMetric(t.category) === 'gas')
   const gasWeeks = useCalculateWeeks(gasTransactions)
   const gasWeeklyAverage = useWeeklyAverage(gasWeeks)
 
-  const diningOutTransactions = allTransactions.filter((t) => classifyMetric(t.category) === 'diningOut')
+  const diningOutTransactions = allTransactions.filter((t: BudgetTransaction) => classifyMetric(t.category) === 'diningOut')
   const diningOutWeeks = useCalculateWeeks(diningOutTransactions)
   const diningOutWeeklyAverage = useWeeklyAverage(diningOutWeeks)
 
-  const groceriesTransactions = allTransactions.filter((t) => classifyMetric(t.category) === 'groceries')
+  const groceriesTransactions = allTransactions.filter((t: BudgetTransaction) => classifyMetric(t.category) === 'groceries')
   const groceriesWeeks = useCalculateWeeks(groceriesTransactions)
   const groceriesWeeklyAverage = useWeeklyAverage(groceriesWeeks)
 
-  const socialTransactions = allTransactions.filter((t) => classifyMetric(t.category) === 'social')
+  const socialTransactions = allTransactions.filter((t: BudgetTransaction) => classifyMetric(t.category) === 'social')
   const socialWeeks = useCalculateWeeks(socialTransactions)
   const socialWeeklyAverage = useWeeklyAverage(socialWeeks)
 
@@ -157,16 +156,20 @@ export function SpendingAveragesPage() {
   // The modal further filters by the selected metric only
   const modalTransactions = useMemo(() => {
     if (!modalMetric) return []
-    return allTransactions.filter((t) => classifyMetric(t.category) === modalMetric)
+    return allTransactions.filter((t: BudgetTransaction) => classifyMetric(t.category) === modalMetric)
   }, [modalMetric, allTransactions])
 
-  // DEBUG: Show which transactions are being included for Dining Out
+  // DEBUG: Show [Split] transactions in allTransactions for josh
   useEffect(() => {
     if (selectedAccount === 'josh' && selectedPeriod === 'APRIL2026') {
+      const splitTx = allTransactions.filter((t: BudgetTransaction) => t.name?.startsWith('[Split]'))
+      const splitDiningOutTx = splitTx.filter((t: BudgetTransaction) => classifyMetric(t.category) === 'diningOut')
       // eslint-disable-next-line no-console
-      console.log('Dining Out Transactions:', diningOutTransactions)
+      console.log(`[Split] transactions in allTransactions: count=`, splitTx.length, splitTx)
+      // eslint-disable-next-line no-console
+      console.log(`[Split] Dining Out transactions: count=`, splitDiningOutTx.length, splitDiningOutTx)
     }
-  }, [diningOutTransactions, selectedAccount, selectedPeriod])
+  }, [allTransactions, selectedAccount, selectedPeriod])
 
   // DEBUG: Show all transactions for the selected account and period
   useEffect(() => {
@@ -183,18 +186,6 @@ export function SpendingAveragesPage() {
     // eslint-disable-next-line no-console
     console.log('RAW API RESPONSE - jointTxData:', jointTxData)
   }, [personalTxData, jointTxData])
-
-  // DEBUG: Show [Split] transactions in allTransactions for josh
-  useEffect(() => {
-    if (selectedAccount === 'josh' && selectedPeriod === 'APRIL2026') {
-      const splitTx = allTransactions.filter(t => t.name.startsWith('[Split]'))
-      const splitDiningOutTx = splitTx.filter(t => classifyMetric(t.category) === 'diningOut')
-      // eslint-disable-next-line no-console
-      console.log(`[Split] transactions in allTransactions: count=`, splitTx.length, splitTx)
-      // eslint-disable-next-line no-console
-      console.log(`[Split] Dining Out transactions: count=`, splitDiningOutTx.length, splitDiningOutTx)
-    }
-  }, [allTransactions, selectedAccount, selectedPeriod])
 
   return (
     <MainLayout>
