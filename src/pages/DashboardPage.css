@@ -495,8 +495,11 @@
 .tt-crit-table-wrap {
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 12px;
-    overflow: hidden;
-    max-height: 340px;
+    display: flex;
+    flex-direction: column;
+    min-height: 480px;
+    height: 480px;
+    max-height: none;
     overflow: auto;
     position: relative;
 }
@@ -505,30 +508,44 @@
     width: 100%;
     border-collapse: collapse;
     font-size: 0.95rem;
+    table-layout: fixed;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
-.tt-crit-table thead th {
-    text-align: left;
-    padding: 10px 12px;
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    color: var(--tt-color-muted);
-    background: rgba(0, 0, 0, 0.25);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+.tt-crit-table thead {
+  flex: 0 0 auto;
 }
 
-.tt-crit-table tbody td {
-    padding: 10px 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+.tt-crit-table tbody {
+  flex: 1 1 auto;
+  display: block;
+  width: 100%;
+  overflow-y: auto;
 }
 
 .tt-crit-table tfoot {
+  flex: 0 0 auto;
   position: sticky;
   bottom: 0;
   z-index: 2;
   background: rgba(20, 20, 22, 0.98);
   box-shadow: 0 -2px 8px 0 rgba(0,0,0,0.08);
+  width: 100%;
+  display: table-footer-group;
+}
+
+.tt-crit-table tbody tr, .tt-crit-table thead tr, .tt-crit-table tfoot tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.tt-crit-table tbody td, .tt-crit-table thead th, .tt-crit-table-total-row td {
+  height: 36px;
+  min-height: 36px;
+  vertical-align: middle;
 }
 
 .tt-crit-table-total-row td {
