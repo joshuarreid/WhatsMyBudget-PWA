@@ -9,6 +9,7 @@ import { TransactionList } from '../features/transactions/components/Transaction
 import { Modal } from '../components/Modal'
 import type { BudgetTransaction } from '../api/transactions/transactions.types'
 import { useProfileStore } from '../store/useProfileStore'
+import { useStatementPeriodStore } from '../store/useStatementPeriodStore'
 
 type ParsedStatementPeriod = {
   monthIndex: number
@@ -92,23 +93,13 @@ function classifyMetric(category: string): MetricKey | null {
 
 export function SpendingAveragesPage() {
   const selectedAccount = useProfileStore((state) => state.profile)
-  const [selectedPeriod, setSelectedPeriod] = useState<string>('')
+  const selectedPeriod = useStatementPeriodStore(s => s.selectedPeriod)
 
   const {
     data: currentStatementPeriod,
     isPending: currentStatementPeriodLoading,
     isError: currentStatementPeriodError,
   } = useCurrentStatementPeriod()
-
-  const availablePeriods = useMemo(() => {
-    return buildStatementPeriodWindow(currentStatementPeriod?.statementPeriod, 4)
-  }, [currentStatementPeriod])
-
-  useEffect(() => {
-    if (selectedPeriod) return
-    if (availablePeriods.length === 0) return
-    setSelectedPeriod(availablePeriods[4] ?? availablePeriods[availablePeriods.length - 1])
-  }, [selectedPeriod, availablePeriods])
 
   // Fetch transactions for the selected account and statement period only
   const { data: personalTxData, isPending: personalTxPending, isError: personalTxError } = useTransactions(selectedAccount, selectedPeriod ? { statementPeriod: selectedPeriod } : undefined)
@@ -173,237 +164,214 @@ export function SpendingAveragesPage() {
 
   return (
     <MainLayout>
-      <div className="tt-card" style={{ minHeight: 'auto' }}>
-        <div className="tt-controls">
-          <div className="tt-period-controls">
-            <label htmlFor="period-select" className="tt-label">
-              Statement Period
-            </label>
-
-            {currentStatementPeriodLoading && <p className="tt-empty">Loading statement periods...</p>}
-            {currentStatementPeriodError && <p className="tt-error">Failed to load current statement period.</p>}
-
-            <select
-              id="period-select"
-              value={selectedPeriod}
-              onChange={(e) => setSelectedPeriod(e.target.value)}
-              className="tt-select"
-            >
-              <option value="">All Periods</option>
-              {availablePeriods.map((period) => (
-                <option key={period} value={period}>
-                  {period}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="tt-subcard">
-          <div style={{ padding: '6px 6px 0' }}>
-            <div style={{ fontWeight: 950, letterSpacing: '0.02em' }}>Weekly Spending Averages</div>
-          </div>
-
-          {anyPending && <p className="tt-empty">Loading transactions...</p>}
-          {anyError && <p className="tt-error">Failed to load transactions for averages.</p>}
-
-          {!anyPending && !anyError && (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                gap: 12,
-                padding: 6,
-              }}
-            >
-              {/* Gas Card Example */}
-              <div
-                className="tt-row"
-                role="button"
-                tabIndex={0}
-                onClick={() => { setModalMetric('gas'); setModalOpen(true) }}
-                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setModalMetric('gas'); setModalOpen(true) } }}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  padding: 18,
-                  minHeight: 120,
-                  background: 'rgba(20,22,28,0.95)',
-                  borderRadius: 16,
-                  boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)',
-                  border: 'none',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  cursor: 'pointer',
-                  outline: 'none',
-                  transition: 'box-shadow 0.18s',
-                }}
-                aria-label="Show gas transactions"
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16, color: '#8db0ff' }}>
-                  <span>⛽</span> <span>Gas</span>
-                </div>
-                <div style={{ fontWeight: 900, fontSize: 36, color: '#8db0ff', margin: '8px 0 0 0', letterSpacing: '-0.01em', textAlign: 'center' }}>
-                  {formatMoney(gasWeeklyAverage)}
-                </div>
-                <div style={{ fontSize: 12, color: 'rgba(230,238,248,0.60)', marginTop: 4, textAlign: 'center' }}>
-                  {gasWeeks.length} weeks · {formatMoney(gasWeeks.reduce((sum, w) => sum + w.totalAmount, 0))}
-                </div>
-              </div>
-              {/* Food Card */}
-              <div
-                className="tt-row"
-                role="button"
-                tabIndex={0}
-                onClick={() => { setModalMetric('food'); setModalOpen(true) }}
-                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setModalMetric('food'); setModalOpen(true) } }}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  padding: 18,
-                  minHeight: 120,
-                  background: 'rgba(28,24,12,0.95)',
-                  borderRadius: 16,
-                  boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)',
-                  border: 'none',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  cursor: 'pointer',
-                  outline: 'none',
-                  transition: 'box-shadow 0.18s',
-                }}
-                aria-label="Show food transactions"
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16, color: '#ffe6b0' }}>
-                  <span>🍽️🥗</span> <span>Food</span>
-                </div>
-                <div style={{ fontWeight: 900, fontSize: 36, color: '#ffe6b0', margin: '8px 0 0 0', letterSpacing: '-0.01em', textAlign: 'center' }}>
-                  {formatMoney(diningOutWeeklyAverage + groceriesWeeklyAverage)}
-                </div>
-                <div style={{ fontSize: 12, color: 'rgba(230,238,248,0.60)', marginTop: 4, textAlign: 'center' }}>
-                  {Math.max(diningOutWeeks.length, groceriesWeeks.length)} weeks · {formatMoney(diningOutWeeks.reduce((sum, w) => sum + w.totalAmount, 0) + groceriesWeeks.reduce((sum, w) => sum + w.totalAmount, 0))}
-                </div>
-              </div>
-              {/* Dining Out Card */}
-              <div
-                className="tt-row"
-                role="button"
-                tabIndex={0}
-                onClick={() => { setModalMetric('diningOut'); setModalOpen(true) }}
-                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setModalMetric('diningOut'); setModalOpen(true) } }}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  padding: 18,
-                  minHeight: 120,
-                  background: 'rgba(28,16,12,0.95)',
-                  borderRadius: 16,
-                  boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)',
-                  border: 'none',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  cursor: 'pointer',
-                  outline: 'none',
-                  transition: 'box-shadow 0.18s',
-                }}
-                aria-label="Show dining out transactions"
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16, color: '#ffb08d' }}>
-                  <span>🍽️</span> <span>Dining Out</span>
-                </div>
-                <div style={{ fontWeight: 900, fontSize: 36, color: '#ffb08d', margin: '8px 0 0 0', letterSpacing: '-0.01em', textAlign: 'center' }}>
-                  {formatMoney(diningOutWeeklyAverage)}
-                </div>
-                <div style={{ fontSize: 12, color: 'rgba(230,238,248,0.60)', marginTop: 4, textAlign: 'center' }}>
-                  {diningOutWeeks.length} weeks · {formatMoney(diningOutWeeks.reduce((sum, w) => sum + w.totalAmount, 0))}
-                </div>
-              </div>
-              {/* Groceries Card */}
-              <div
-                className="tt-row"
-                role="button"
-                tabIndex={0}
-                onClick={() => { setModalMetric('groceries'); setModalOpen(true) }}
-                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setModalMetric('groceries'); setModalOpen(true) } }}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  padding: 18,
-                  minHeight: 120,
-                  background: 'rgba(16,28,12,0.95)',
-                  borderRadius: 16,
-                  boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)',
-                  border: 'none',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  cursor: 'pointer',
-                  outline: 'none',
-                  transition: 'box-shadow 0.18s',
-                }}
-                aria-label="Show groceries transactions"
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16, color: '#b0ff8d' }}>
-                  <span>🛒</span> <span>Groceries</span>
-                </div>
-                <div style={{ fontWeight: 900, fontSize: 36, color: '#b0ff8d', margin: '8px 0 0 0', letterSpacing: '-0.01em', textAlign: 'center' }}>
-                  {formatMoney(groceriesWeeklyAverage)}
-                </div>
-                <div style={{ fontSize: 12, color: 'rgba(230,238,248,0.60)', marginTop: 4, textAlign: 'center' }}>
-                  {groceriesWeeks.length} weeks · {formatMoney(groceriesWeeks.reduce((sum, w) => sum + w.totalAmount, 0))}
-                </div>
-              </div>
-              {/* Social Card */}
-              <div
-                className="tt-row"
-                role="button"
-                tabIndex={0}
-                onClick={() => { setModalMetric('social'); setModalOpen(true) }}
-                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setModalMetric('social'); setModalOpen(true) } }}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  padding: 18,
-                  minHeight: 120,
-                  background: 'rgba(28,12,40,0.95)',
-                  borderRadius: 16,
-                  boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)',
-                  border: 'none',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  cursor: 'pointer',
-                  outline: 'none',
-                  transition: 'box-shadow 0.18s',
-                }}
-                aria-label="Show social transactions"
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16, color: '#b08dff' }}>
-                  <span>🎉</span> <span>Social</span>
-                </div>
-                <div style={{ fontWeight: 900, fontSize: 36, color: '#b08dff', margin: '8px 0 0 0', letterSpacing: '-0.01em', textAlign: 'center' }}>
-                  {formatMoney(socialWeeklyAverage)}
-                </div>
-                <div style={{ fontSize: 12, color: 'rgba(230,238,248,0.60)', marginTop: 4, textAlign: 'center' }}>
-                  {socialWeeks.length} weeks · {formatMoney(socialWeeks.reduce((sum, w) => sum + w.totalAmount, 0))}
-                </div>
-              </div>
-              {/* ...other metric cards... */}
+      <div>
+        <div className="tt-card" style={{ minHeight: 'auto' }}>
+          <div className="tt-subcard">
+            <div style={{ padding: '6px 6px 0' }}>
+              <div style={{ fontWeight: 950, letterSpacing: '0.02em' }}>Weekly Spending Averages</div>
             </div>
-          )}
+
+            {anyPending && <p className="tt-empty">Loading transactions...</p>}
+            {anyError && <p className="tt-error">Failed to load transactions for averages.</p>}
+
+            {!anyPending && !anyError && (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  gap: 12,
+                  padding: 6,
+                }}
+              >
+                {/* Gas Card Example */}
+                <div
+                  className="tt-row"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => { setModalMetric('gas'); setModalOpen(true) }}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setModalMetric('gas'); setModalOpen(true) } }}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    padding: 18,
+                    minHeight: 120,
+                    background: 'rgba(20,22,28,0.95)',
+                    borderRadius: 16,
+                    boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)',
+                    border: 'none',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    transition: 'box-shadow 0.18s',
+                  }}
+                  aria-label="Show gas transactions"
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16, color: '#8db0ff' }}>
+                    <span>⛽</span> <span>Gas</span>
+                  </div>
+                  <div style={{ fontWeight: 900, fontSize: 36, color: '#8db0ff', margin: '8px 0 0 0', letterSpacing: '-0.01em', textAlign: 'center' }}>
+                    {formatMoney(gasWeeklyAverage)}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'rgba(230,238,248,0.60)', marginTop: 4, textAlign: 'center' }}>
+                    {gasWeeks.length} weeks · {formatMoney(gasWeeks.reduce((sum, w) => sum + w.totalAmount, 0))}
+                  </div>
+                </div>
+                {/* Food Card */}
+                <div
+                  className="tt-row"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => { setModalMetric('food'); setModalOpen(true) }}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setModalMetric('food'); setModalOpen(true) } }}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    padding: 18,
+                    minHeight: 120,
+                    background: 'rgba(28,24,12,0.95)',
+                    borderRadius: 16,
+                    boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)',
+                    border: 'none',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    transition: 'box-shadow 0.18s',
+                  }}
+                  aria-label="Show food transactions"
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16, color: '#ffe6b0' }}>
+                    <span>🍽️🥗</span> <span>Food</span>
+                  </div>
+                  <div style={{ fontWeight: 900, fontSize: 36, color: '#ffe6b0', margin: '8px 0 0 0', letterSpacing: '-0.01em', textAlign: 'center' }}>
+                    {formatMoney(diningOutWeeklyAverage + groceriesWeeklyAverage)}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'rgba(230,238,248,0.60)', marginTop: 4, textAlign: 'center' }}>
+                    {Math.max(diningOutWeeks.length, groceriesWeeks.length)} weeks · {formatMoney(diningOutWeeks.reduce((sum, w) => sum + w.totalAmount, 0) + groceriesWeeks.reduce((sum, w) => sum + w.totalAmount, 0))}
+                  </div>
+                </div>
+                {/* Dining Out Card */}
+                <div
+                  className="tt-row"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => { setModalMetric('diningOut'); setModalOpen(true) }}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setModalMetric('diningOut'); setModalOpen(true) } }}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    padding: 18,
+                    minHeight: 120,
+                    background: 'rgba(28,16,12,0.95)',
+                    borderRadius: 16,
+                    boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)',
+                    border: 'none',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    transition: 'box-shadow 0.18s',
+                  }}
+                  aria-label="Show dining out transactions"
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16, color: '#ffb08d' }}>
+                    <span>🍽️</span> <span>Dining Out</span>
+                  </div>
+                  <div style={{ fontWeight: 900, fontSize: 36, color: '#ffb08d', margin: '8px 0 0 0', letterSpacing: '-0.01em', textAlign: 'center' }}>
+                    {formatMoney(diningOutWeeklyAverage)}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'rgba(230,238,248,0.60)', marginTop: 4, textAlign: 'center' }}>
+                    {diningOutWeeks.length} weeks · {formatMoney(diningOutWeeks.reduce((sum, w) => sum + w.totalAmount, 0))}
+                  </div>
+                </div>
+                {/* Groceries Card */}
+                <div
+                  className="tt-row"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => { setModalMetric('groceries'); setModalOpen(true) }}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setModalMetric('groceries'); setModalOpen(true) } }}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    padding: 18,
+                    minHeight: 120,
+                    background: 'rgba(16,28,12,0.95)',
+                    borderRadius: 16,
+                    boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)',
+                    border: 'none',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    transition: 'box-shadow 0.18s',
+                  }}
+                  aria-label="Show groceries transactions"
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16, color: '#b0ff8d' }}>
+                    <span>🛒</span> <span>Groceries</span>
+                  </div>
+                  <div style={{ fontWeight: 900, fontSize: 36, color: '#b0ff8d', margin: '8px 0 0 0', letterSpacing: '-0.01em', textAlign: 'center' }}>
+                    {formatMoney(groceriesWeeklyAverage)}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'rgba(230,238,248,0.60)', marginTop: 4, textAlign: 'center' }}>
+                    {groceriesWeeks.length} weeks · {formatMoney(groceriesWeeks.reduce((sum, w) => sum + w.totalAmount, 0))}
+                  </div>
+                </div>
+                {/* Social Card */}
+                <div
+                  className="tt-row"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => { setModalMetric('social'); setModalOpen(true) }}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setModalMetric('social'); setModalOpen(true) } }}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    padding: 18,
+                    minHeight: 120,
+                    background: 'rgba(28,12,40,0.95)',
+                    borderRadius: 16,
+                    boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)',
+                    border: 'none',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    transition: 'box-shadow 0.18s',
+                  }}
+                  aria-label="Show social transactions"
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16, color: '#b08dff' }}>
+                    <span>🎉</span> <span>Social</span>
+                  </div>
+                  <div style={{ fontWeight: 900, fontSize: 36, color: '#b08dff', margin: '8px 0 0 0', letterSpacing: '-0.01em', textAlign: 'center' }}>
+                    {formatMoney(socialWeeklyAverage)}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'rgba(230,238,248,0.60)', marginTop: 4, textAlign: 'center' }}>
+                    {socialWeeks.length} weeks · {formatMoney(socialWeeks.reduce((sum, w) => sum + w.totalAmount, 0))}
+                  </div>
+                </div>
+                {/* ...other metric cards... */}
+              </div>
+            )}
+          </div>
         </div>
       </div>
       <Modal
