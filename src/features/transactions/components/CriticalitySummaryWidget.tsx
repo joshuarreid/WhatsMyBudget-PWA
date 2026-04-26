@@ -1,7 +1,6 @@
 import { useMemo, useState, type CSSProperties } from 'react'
 import type { CriticalitySummary } from '../../../api/transactions/criticalitySummary.types'
 import type { CategoryBreakdownRow } from '../hooks/useCriticalitySummaries'
-import { Modal } from '../../../components/Modal'
 import type { BudgetTransaction } from '../../../api/transactions/transactions.types'
 import type { ProjectedTransaction } from '../../../api/projectedTransactions/projectedTransactions.types'
 
@@ -142,31 +141,12 @@ export const CriticalitySummaryWidget = (props: {
   nonessentialActual: BudgetTransaction[]
   nonessentialProjected: ProjectedTransaction[]
 }) => {
-  const [isOpen, setIsOpen] = useState(false)
   const [tab, setTab] = useState<'essential' | 'nonessential'>('essential')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
 
-  const modalTitle = useMemo(() => {
-    const bucketLabel = tab === 'essential' ? 'Essential' : 'Nonessential'
-    if (selectedCategory) return `${bucketLabel} • ${selectedCategory}`
-    return `${bucketLabel} breakdown`
-  }, [selectedCategory, tab])
-
   const activeRows = tab === 'essential' ? props.essentialByCategory : props.nonessentialByCategory
-
   const activeActual = tab === 'essential' ? props.essentialActual : props.nonessentialActual
   const activeProjected = tab === 'essential' ? props.essentialProjected : props.nonessentialProjected
-
-  const onWidgetOpen = () => {
-    setTab('essential')
-    setSelectedCategory(null)
-    setIsOpen(true)
-  }
-
-  const onClose = () => {
-    setIsOpen(false)
-    setSelectedCategory(null)
-  }
 
   const categoryActualTxns = useMemo(() => {
     if (!selectedCategory) return []
@@ -189,7 +169,7 @@ export const CriticalitySummaryWidget = (props: {
       .filter((t) => normalizeCategory((t as any).category) === cat)
       .map((t) => ({
         id: (t as any).id,
-        date: (t as any).projectedDate ?? (t as any).projectedTransactionDate,
+        date: (t as any).date ?? (t as any).transactionDate,
         description: (t as any).description ?? (t as any).name,
         amount: Number((t as any).amount) || 0,
       }))
@@ -197,55 +177,51 @@ export const CriticalitySummaryWidget = (props: {
   }, [activeProjected, selectedCategory])
 
   return (
-    <>
-      <button type="button" className="tt-crit-widget tt-crit-widget-click" onClick={onWidgetOpen}>
-        <div className="tt-crit-ring-row">
-          <RingStat label="Essential" summary={props.essential} />
-          <RingStat label="Nonessential" summary={props.nonessential} />
-        </div>
-      </button>
-
-      <Modal
-        isOpen={isOpen}
-        onClose={onClose}
-        title={modalTitle}
-        onBack={selectedCategory ? () => setSelectedCategory(null) : undefined}
-        backLabel="Back to categories"
-      >
-        <div className="tt-crit-modal-tabs">
-          <button
-            type="button"
-            className={`tt-pill tt-crit-tab ${tab === 'essential' ? 'tt-crit-tab-active' : ''}`}
-            onClick={() => {
-              setTab('essential')
-              setSelectedCategory(null)
-            }}
-          >
-            Essential
-          </button>
-          <button
-            type="button"
-            className={`tt-pill tt-crit-tab ${tab === 'nonessential' ? 'tt-crit-tab-active' : ''}`}
-            onClick={() => {
-              setTab('nonessential')
-              setSelectedCategory(null)
-            }}
-          >
-            Nonessential
-          </button>
-        </div>
-
-        <div className="tt-crit-modal-content" role="region" aria-label="Category breakdown">
-          {selectedCategory ? (
-            <div className="tt-crit-category-detail">
-              <TxnList title="Transactions" variant="actual" items={categoryActualTxns} />
-              <TxnList title="Projected" variant="projected" items={categoryProjectedTxns} />
-            </div>
-          ) : (
-            <BreakdownTable rows={activeRows} onSelectCategory={(c) => setSelectedCategory(c)} />
-          )}
-        </div>
-      </Modal>
-    </>
+    <div>
+      <div className="tt-crit-ring-row">
+        <RingStat label="Essential" summary={props.essential} />
+        <RingStat label="Nonessential" summary={props.nonessential} />
+      </div>
+      <div className="tt-crit-modal-tabs" style={{ marginTop: 24, marginBottom: 8 }}>
+        <button
+          type="button"
+          className={`tt-pill tt-crit-tab ${tab === 'essential' ? 'tt-crit-tab-active' : ''}`}
+          onClick={() => {
+            setTab('essential')
+            setSelectedCategory(null)
+          }}
+        >
+          Essential
+        </button>
+        <button
+          type="button"
+          className={`tt-pill tt-crit-tab ${tab === 'nonessential' ? 'tt-crit-tab-active' : ''}`}
+          onClick={() => {
+            setTab('nonessential')
+            setSelectedCategory(null)
+          }}
+        >
+          Nonessential
+        </button>
+      </div>
+      <div className="tt-crit-modal-content" role="region" aria-label="Category breakdown">
+        {selectedCategory ? (
+          <div className="tt-crit-category-detail">
+            <button
+              type="button"
+              className="tt-back-btn"
+              style={{ marginBottom: 16 }}
+              onClick={() => setSelectedCategory(null)}
+            >
+              ← Back to categories
+            </button>
+            <TxnList title="Transactions" variant="actual" items={categoryActualTxns} />
+            <TxnList title="Projected" variant="projected" items={categoryProjectedTxns} />
+          </div>
+        ) : (
+          <BreakdownTable rows={activeRows} onSelectCategory={(c) => setSelectedCategory(c)} />
+        )}
+      </div>
+    </div>
   )
 }

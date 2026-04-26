@@ -91,8 +91,6 @@ export const DashboardPage = () => {
               ) : (
                 <div className="tt-empty" />
               )}
-            </div>
-          </div>
         </div>
       </div>
     </MainLayout>
