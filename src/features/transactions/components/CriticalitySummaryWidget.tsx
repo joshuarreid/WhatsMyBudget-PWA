@@ -40,6 +40,39 @@ const RingStat = (props: { label: string; summary: CriticalitySummary }) => {
   )
 }
 
+const DualRingStat = (props: {
+  essential: CriticalitySummary
+  nonessential: CriticalitySummary
+}) => {
+  const totalEssential = props.essential.actualTotal + props.essential.projectedTotal
+  const projectedFractionEssential = totalEssential === 0 ? 0 : props.essential.projectedTotal / totalEssential
+  const totalNonessential = props.nonessential.actualTotal + props.nonessential.projectedTotal
+  const projectedFractionNonessential = totalNonessential === 0 ? 0 : props.nonessential.projectedTotal / totalNonessential
+
+  return (
+    <div className="tt-crit-stat tt-crit-dual-ring">
+      <div className="tt-crit-dual-ring-inner">
+        <div className="tt-crit-ring-box">
+          <div className="tt-crit-title">Essential</div>
+          <div className="tt-crit-ring" style={ringStyle(projectedFractionEssential, '#1fbf75', '#f5c542')}>
+            <div className="tt-crit-ring-inner">
+              <div className="tt-crit-amount">{formatCurrency(totalEssential)}</div>
+            </div>
+          </div>
+        </div>
+        <div className="tt-crit-ring-box">
+          <div className="tt-crit-title">Nonessential</div>
+          <div className="tt-crit-ring" style={ringStyle(projectedFractionNonessential, '#3b82f6', '#f5c542')}>
+            <div className="tt-crit-ring-inner">
+              <div className="tt-crit-amount">{formatCurrency(totalNonessential)}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const formatDate = (value: string | undefined) => {
   if (!value) return ''
   const dt = new Date(value)
@@ -178,10 +211,7 @@ export const CriticalitySummaryWidget = (props: {
 
   return (
     <div>
-      <div className="tt-crit-ring-row">
-        <RingStat label="Essential" summary={props.essential} />
-        <RingStat label="Nonessential" summary={props.nonessential} />
-      </div>
+      <DualRingStat essential={props.essential} nonessential={props.nonessential} />
       <div className="tt-crit-modal-tabs" style={{ marginTop: 24, marginBottom: 8 }}>
         <button
           type="button"
