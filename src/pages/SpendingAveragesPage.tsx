@@ -4,9 +4,8 @@ import { useCurrentStatementPeriod } from '../features/statements/hooks/useCurre
 import { useTransactions } from '../features/transactions/hooks/useTransactions'
 import { useCalculateWeeks } from '../features/transactions/hooks/useCalculateWeeks'
 import { useWeeklyAverage } from '../features/transactions/hooks/useWeeklyAverage'
-import type { BudgetTransaction } from '../api/transactions/transactions.types'
 import './DashboardPage.css'
-import { Modal } from '../components/Modal'
+import { TransactionList } from '../features/transactions/components/TransactionList'
 
 const ACCOUNTS = ['josh', 'joint', 'anna'] as const
 
@@ -73,48 +72,12 @@ const buildStatementPeriodWindow = (current: string | null | undefined, monthsBa
   return periods
 }
 
-const parseISODateOnly = (dateStr: string): Date | null => {
-  // Handles YYYY-MM-DD and full ISO timestamps.
-  const d = new Date(dateStr)
-  if (!Number.isFinite(d.getTime())) return null
-  // Normalize to local midnight for consistent bucketing.
-  d.setHours(0, 0, 0, 0)
-  return d
-}
-
-const addDays = (date: Date, days: number): Date => {
-  const d = new Date(date)
-  d.setDate(d.getDate() + days)
-  return d
-}
-
-const daysBetween = (start: Date, end: Date): number => {
-  // start inclusive, end exclusive
-  const ms = end.getTime() - start.getTime()
-  return Math.floor(ms / (24 * 60 * 60 * 1000))
-}
-
-// Metric configuration for rendering cards
-const metricConfig = [
-  {
-    key: 'gas',
-    title: 'Gas',
-    subtitle: 'Fuel, gas stations, etc.',
-  },
-  // You can add other metrics here if needed
-]
-
 // Utility functions for metrics
 function formatMoney(amount: number) {
   return amount.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 }
 
 type MetricKey = 'food' | 'gas' | 'social' | 'nonperishables'
-type MetricResult = { total: number; weeklyAverage: number; weeks: number }
-
-function isExpense(t: BudgetTransaction) {
-  return t.amount > 0 && t.type === 'expense'
-}
 
 function classifyMetric(category: string): MetricKey | null {
   const cat = category.toLowerCase()
@@ -123,83 +86,6 @@ function classifyMetric(category: string): MetricKey | null {
   if (cat.includes('social')) return 'social'
   if (cat.includes('nonperish')) return 'nonperishables'
   return null
-}
-
-function computeWeeklyAverages(
-  transactions: BudgetTransaction[],
-  start: Date | null,
-  end: Date | null
-): Record<MetricKey, MetricResult> {
-  if (!start || !end) {
-    return {
-      food: { total: 0, weeklyAverage: 0, weeks: 0 },
-      gas: { total: 0, weeklyAverage: 0, weeks: 0 },
-      social: { total: 0, weeklyAverage: 0, weeks: 0 },
-      nonperishables: { total: 0, weeklyAverage: 0, weeks: 0 },
-    }
-  }
-
-  // Build week buckets
-  const weeks: { start: Date; end: Date }[] = []
-  let ws = new Date(start)
-  let now = new Date()
-  while (ws < end) {
-    let we = addDays(ws, 7)
-    if (we > end) break
-    // exclude current week if we're currently inside it
-    if (ws <= now && now < we) {
-      ws = we
-      continue
-    }
-    weeks.push({ start: ws, end: we })
-    ws = we
-  }
-
-  const weeklyTotals: Record<MetricKey, number[]> = {
-    food: Array(weeks.length).fill(0),
-    gas: Array(weeks.length).fill(0),
-    social: Array(weeks.length).fill(0),
-    nonperishables: Array(weeks.length).fill(0),
-  }
-
-  const weekIndexFor = (txDate: Date): number => {
-    // txDate at local midnight
-    const offsetDays = daysBetween(start, txDate)
-    return Math.floor(offsetDays / 7)
-  }
-
-  for (const t of transactions) {
-    if (!t?.transactionDate) continue
-    if (!isExpense(t)) continue
-
-    const metric = classifyMetric(t.category)
-    if (!metric) continue
-
-    const dt = parseISODateOnly(t.transactionDate)
-    if (!dt) continue
-
-    // must be within statement period
-    if (dt < start || dt >= end) continue
-
-    const idx = weekIndexFor(dt)
-    if (idx < 0 || idx >= weeks.length) continue
-
-    const w = weeks[idx]
-    // guard: ensure this idx corresponds to a kept (non-current) week
-    if (!(w.start <= dt && dt < w.end)) continue
-
-    weeklyTotals[metric][idx] += t.amount
-  }
-
-  const results = {} as Record<MetricKey, MetricResult>
-  ;(Object.keys(weeklyTotals) as MetricKey[]).forEach((metric) => {
-    const total = weeklyTotals[metric].reduce((sum, v) => sum + v, 0)
-    const weeksCount = weeks.length
-    const weeklyAverage = weeksCount > 0 ? total / weeksCount : 0
-    results[metric] = { total, weeklyAverage, weeks: weeksCount }
-  })
-
-  return results
 }
 
 export function SpendingAveragesPage() {
@@ -222,15 +108,6 @@ export function SpendingAveragesPage() {
     setSelectedPeriod(availablePeriods[4] ?? availablePeriods[availablePeriods.length - 1])
   }, [selectedPeriod, availablePeriods])
 
-  const statementPeriods = useMemo(() => {
-    // Use the selected period as the anchor for the rolling window.
-    // If "All Periods" is selected, fall back to current.
-    const anchor = selectedPeriod || currentStatementPeriod?.statementPeriod
-    return buildStatementPeriodWindow(anchor, 5)
-  }, [selectedPeriod, currentStatementPeriod])
-
-  const [p1, p2, p3, p4, p5, p6] = statementPeriods
-
   // Fetch transactions for the selected account and statement period only
   const { data: txData, isPending: txPending, isError: txError } = useTransactions(selectedAccount, selectedPeriod ? { statementPeriod: selectedPeriod } : undefined)
 
@@ -242,29 +119,20 @@ export function SpendingAveragesPage() {
     return txData?.transactions ?? []
   }, [txData])
 
-  const statementPeriodStart = useMemo(() => {
-    // Cache API provides statementPeriod, startDate, endDate
-    const startDate = (currentStatementPeriod as any)?.startDate
-    return startDate ? parseISODateOnly(startDate) : null
-  }, [currentStatementPeriod])
-
-  const statementPeriodEnd = useMemo(() => {
-    const endDate = (currentStatementPeriod as any)?.endDate
-    // Treat end as exclusive; add 1 day so endDate itself is included in period.
-    const d = endDate ? parseISODateOnly(endDate) : null
-    return d ? addDays(d, 1) : null
-  }, [currentStatementPeriod])
-
-  const metrics = useMemo(() => {
-    // For now, match the other app example: compute for the selected statement period only.
-    // (We still fetch a window for future, but averages are anchored to the selected period weeks.)
-    return computeWeeklyAverages(allTransactions, statementPeriodStart, statementPeriodEnd)
-  }, [allTransactions, statementPeriodStart, statementPeriodEnd])
-
   // Calculate weeks for all transactions (for Gas)
   const gasTransactions = allTransactions.filter((t) => classifyMetric(t.category) === 'gas')
   const gasWeeks = useCalculateWeeks(gasTransactions)
   const gasWeeklyAverage = useWeeklyAverage(gasWeeks)
+
+  const [modalMetric, setModalMetric] = useState<MetricKey | null>(null)
+
+  // Filter transactions for the selected metric
+  // allTransactions is already filtered by selectedAccount and selectedPeriod via useTransactions
+  // The modal further filters by the selected metric only
+  const modalTransactions = useMemo(() => {
+    if (!modalMetric) return []
+    return allTransactions.filter((t) => classifyMetric(t.category) === modalMetric)
+  }, [modalMetric, allTransactions])
 
   return (
     <MainLayout>
@@ -350,7 +218,7 @@ export function SpendingAveragesPage() {
                 padding: 6,
               }}
             >
-              {/* Modern Gas Card Example using weeks */}
+              {/* Gas Card Example */}
               <div
                 className="tt-row"
                 style={{
@@ -371,7 +239,13 @@ export function SpendingAveragesPage() {
                   <div>
                     <div style={{ fontWeight: 950, fontSize: 18, letterSpacing: '0.01em', color: '#e6eef8' }}>⛽ Gas</div>
                   </div>
-                  <div style={{ fontWeight: 950, color: '#8db0ff', fontSize: 28, letterSpacing: '-0.01em' }}>{formatMoney(gasWeeklyAverage)}</div>
+                  <button
+                    style={{ background: 'none', border: 'none', padding: 0, margin: 0, cursor: 'pointer', fontWeight: 950, color: '#8db0ff', fontSize: 28, letterSpacing: '-0.01em' }}
+                    onClick={() => { setModalMetric('gas') }}
+                    aria-label="Show gas transactions"
+                  >
+                    {formatMoney(gasWeeklyAverage)}
+                  </button>
                 </div>
                 <div style={{ fontSize: 13, color: '#b0c4de', marginTop: 10, display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                   <span>Weeks with gas: <b style={{ color: '#e6eef8' }}>{gasWeeks.length}</b></span>
@@ -396,6 +270,7 @@ export function SpendingAveragesPage() {
           )}
         </div>
       </div>
+      <TransactionList transactions={modalTransactions} />
     </MainLayout>
   )
 }
