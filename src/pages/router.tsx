@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import type { ReactNode } from 'react'
 
 // Simple router for getting started - replace with react-router-dom for production
-type Route = '/' | '/login'
+type Route = '/' | '/login' | '/spending-averages'
 
 let currentRoute: Route = (window.location.pathname as Route) || '/'
 const listeners: Array<() => void> = []

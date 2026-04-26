@@ -1,0 +1,411 @@
+import { useEffect, useMemo, useState } from 'react'
+import { MainLayout } from '../layouts/MainLayout'
+import { useCurrentStatementPeriod } from '../features/statements/hooks/useCurrentStatementPeriod'
+import { useTransactions } from '../features/transactions/hooks/useTransactions'
+import type { BudgetTransaction } from '../api/transactions/transactions.types'
+import './DashboardPage.css'
+
+const ACCOUNTS = ['josh', 'joint', 'anna'] as const
+
+type Account = (typeof ACCOUNTS)[number]
+
+type ParsedStatementPeriod = {
+  monthIndex: number
+  year: number
+}
+
+const MONTHS = [
+  'JANUARY',
+  'FEBRUARY',
+  'MARCH',
+  'APRIL',
+  'MAY',
+  'JUNE',
+  'JULY',
+  'AUGUST',
+  'SEPTEMBER',
+  'OCTOBER',
+  'NOVEMBER',
+  'DECEMBER',
+] as const
+
+type MonthName = (typeof MONTHS)[number]
+
+const parseStatementPeriod = (period: string): ParsedStatementPeriod | null => {
+  const match = /^([A-Z]+)(\d{4})$/.exec(period.trim().toUpperCase())
+  if (!match) return null
+
+  const monthName = match[1] as MonthName
+  const monthIndex = MONTHS.indexOf(monthName)
+  if (monthIndex === -1) return null
+
+  const year = Number(match[2])
+  if (!Number.isFinite(year)) return null
+
+  return { monthIndex, year }
+}
+
+const formatStatementPeriod = (monthIndex: number, year: number): string => {
+  return `${MONTHS[monthIndex]}${year}`
+}
+
+const addMonths = (value: ParsedStatementPeriod, deltaMonths: number): ParsedStatementPeriod => {
+  const total = value.year * 12 + value.monthIndex + deltaMonths
+  const year = Math.floor(total / 12)
+  const monthIndex = ((total % 12) + 12) % 12
+  return { year, monthIndex }
+}
+
+const buildStatementPeriodWindow = (current: string | null | undefined, monthsBack: number): string[] => {
+  if (!current) return []
+  const parsed = parseStatementPeriod(current)
+  if (!parsed) return []
+
+  const periods: string[] = []
+  for (let offset = -monthsBack; offset <= 0; offset++) {
+    const p = addMonths(parsed, offset)
+    periods.push(formatStatementPeriod(p.monthIndex, p.year))
+  }
+
+  return periods
+}
+
+const parseISODateOnly = (dateStr: string): Date | null => {
+  // Handles YYYY-MM-DD and full ISO timestamps.
+  const d = new Date(dateStr)
+  if (!Number.isFinite(d.getTime())) return null
+  // Normalize to local midnight for consistent bucketing.
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+const addDays = (date: Date, days: number): Date => {
+  const d = new Date(date)
+  d.setDate(d.getDate() + days)
+  return d
+}
+
+const daysBetween = (start: Date, end: Date): number => {
+  // start inclusive, end exclusive
+  const ms = end.getTime() - start.getTime()
+  return Math.floor(ms / (24 * 60 * 60 * 1000))
+}
+
+// Metric configuration for rendering cards
+const metricConfig = [
+  {
+    key: 'gas',
+    title: 'Gas',
+    subtitle: 'Fuel, gas stations, etc.',
+  },
+  // You can add other metrics here if needed
+]
+
+// Utility functions for metrics
+function formatMoney(amount: number) {
+  return amount.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
+}
+
+type MetricKey = 'food' | 'gas' | 'social' | 'nonperishables'
+type MetricResult = { total: number; weeklyAverage: number; weeks: number }
+
+function isExpense(t: BudgetTransaction) {
+  return t.amount > 0 && t.type === 'expense'
+}
+
+function classifyMetric(category: string): MetricKey | null {
+  const cat = category.toLowerCase()
+  if (cat.includes('gas')) return 'gas'
+  if (cat.includes('food')) return 'food'
+  if (cat.includes('social')) return 'social'
+  if (cat.includes('nonperish')) return 'nonperishables'
+  return null
+}
+
+function computeWeeklyAverages(
+  transactions: BudgetTransaction[],
+  start: Date | null,
+  end: Date | null
+): Record<MetricKey, MetricResult> {
+  if (!start || !end) {
+    return {
+      food: { total: 0, weeklyAverage: 0, weeks: 0 },
+      gas: { total: 0, weeklyAverage: 0, weeks: 0 },
+      social: { total: 0, weeklyAverage: 0, weeks: 0 },
+      nonperishables: { total: 0, weeklyAverage: 0, weeks: 0 },
+    }
+  }
+
+  // Build week buckets
+  const weeks: { start: Date; end: Date }[] = []
+  let ws = new Date(start)
+  let now = new Date()
+  while (ws < end) {
+    let we = addDays(ws, 7)
+    if (we > end) break
+    // exclude current week if we're currently inside it
+    if (ws <= now && now < we) {
+      ws = we
+      continue
+    }
+    weeks.push({ start: ws, end: we })
+    ws = we
+  }
+
+  const weeklyTotals: Record<MetricKey, number[]> = {
+    food: Array(weeks.length).fill(0),
+    gas: Array(weeks.length).fill(0),
+    social: Array(weeks.length).fill(0),
+    nonperishables: Array(weeks.length).fill(0),
+  }
+
+  const weekIndexFor = (txDate: Date): number => {
+    // txDate at local midnight
+    const offsetDays = daysBetween(start, txDate)
+    return Math.floor(offsetDays / 7)
+  }
+
+  for (const t of transactions) {
+    if (!t?.transactionDate) continue
+    if (!isExpense(t)) continue
+
+    const metric = classifyMetric(t.category)
+    if (!metric) continue
+
+    const dt = parseISODateOnly(t.transactionDate)
+    if (!dt) continue
+
+    // must be within statement period
+    if (dt < start || dt >= end) continue
+
+    const idx = weekIndexFor(dt)
+    if (idx < 0 || idx >= weeks.length) continue
+
+    const w = weeks[idx]
+    // guard: ensure this idx corresponds to a kept (non-current) week
+    if (!(w.start <= dt && dt < w.end)) continue
+
+    weeklyTotals[metric][idx] += t.amount
+  }
+
+  const results = {} as Record<MetricKey, MetricResult>
+  ;(Object.keys(weeklyTotals) as MetricKey[]).forEach((metric) => {
+    const total = weeklyTotals[metric].reduce((sum, v) => sum + v, 0)
+    const weeksCount = weeks.length
+    const weeklyAverage = weeksCount > 0 ? total / weeksCount : 0
+    results[metric] = { total, weeklyAverage, weeks: weeksCount }
+  })
+
+  return results
+}
+
+export function SpendingAveragesPage() {
+  const [selectedAccount, setSelectedAccount] = useState<Account>('josh')
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('')
+
+  const {
+    data: currentStatementPeriod,
+    isPending: currentStatementPeriodLoading,
+    isError: currentStatementPeriodError,
+  } = useCurrentStatementPeriod()
+
+  const availablePeriods = useMemo(() => {
+    return buildStatementPeriodWindow(currentStatementPeriod?.statementPeriod, 4)
+  }, [currentStatementPeriod])
+
+  useEffect(() => {
+    if (selectedPeriod) return
+    if (availablePeriods.length === 0) return
+    setSelectedPeriod(availablePeriods[4] ?? availablePeriods[availablePeriods.length - 1])
+  }, [selectedPeriod, availablePeriods])
+
+  const statementPeriods = useMemo(() => {
+    // Use the selected period as the anchor for the rolling window.
+    // If "All Periods" is selected, fall back to current.
+    const anchor = selectedPeriod || currentStatementPeriod?.statementPeriod
+    return buildStatementPeriodWindow(anchor, 5)
+  }, [selectedPeriod, currentStatementPeriod])
+
+  const [p1, p2, p3, p4, p5, p6] = statementPeriods
+
+  const t1 = useTransactions(selectedAccount, p1 ? { statementPeriod: p1 } : undefined)
+  const t2 = useTransactions(selectedAccount, p2 ? { statementPeriod: p2 } : undefined)
+  const t3 = useTransactions(selectedAccount, p3 ? { statementPeriod: p3 } : undefined)
+  const t4 = useTransactions(selectedAccount, p4 ? { statementPeriod: p4 } : undefined)
+  const t5 = useTransactions(selectedAccount, p5 ? { statementPeriod: p5 } : undefined)
+  const t6 = useTransactions(selectedAccount, p6 ? { statementPeriod: p6 } : undefined)
+
+  const anyPending =
+    currentStatementPeriodLoading ||
+    t1.isPending ||
+    t2.isPending ||
+    t3.isPending ||
+    t4.isPending ||
+    t5.isPending ||
+    t6.isPending
+
+  const anyError =
+    currentStatementPeriodError ||
+    t1.isError ||
+    t2.isError ||
+    t3.isError ||
+    t4.isError ||
+    t5.isError ||
+    t6.isError
+
+  const allTransactions = useMemo(() => {
+    const lists = [t1.data, t2.data, t3.data, t4.data, t5.data, t6.data]
+      .flatMap((d) => d?.transactions ?? [])
+      .filter(Boolean)
+
+    // De-dupe by id+date+amount in case the API overlaps across statement periods
+    const seen = new Set<string>()
+    const deduped: BudgetTransaction[] = []
+    for (const tx of lists) {
+      const key = `${tx.id}|${tx.transactionDate}|${tx.amount}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      deduped.push(tx)
+    }
+    return deduped
+  }, [t1.data, t2.data, t3.data, t4.data, t5.data, t6.data])
+
+  const statementPeriodStart = useMemo(() => {
+    // Cache API provides statementPeriod, startDate, endDate
+    const startDate = (currentStatementPeriod as any)?.startDate
+    return startDate ? parseISODateOnly(startDate) : null
+  }, [currentStatementPeriod])
+
+  const statementPeriodEnd = useMemo(() => {
+    const endDate = (currentStatementPeriod as any)?.endDate
+    // Treat end as exclusive; add 1 day so endDate itself is included in period.
+    const d = endDate ? parseISODateOnly(endDate) : null
+    return d ? addDays(d, 1) : null
+  }, [currentStatementPeriod])
+
+  const metrics = useMemo(() => {
+    // For now, match the other app example: compute for the selected statement period only.
+    // (We still fetch a window for future, but averages are anchored to the selected period weeks.)
+    return computeWeeklyAverages(allTransactions, statementPeriodStart, statementPeriodEnd)
+  }, [allTransactions, statementPeriodStart, statementPeriodEnd])
+
+  return (
+    <MainLayout>
+      <div className="tt-card" style={{ minHeight: 'auto' }}>
+        <div className="tt-controls">
+          <div>
+            <div className="tt-tabs">
+              {ACCOUNTS.map((acct) => {
+                const isActive = selectedAccount === acct
+                return (
+                  <button
+                    key={acct}
+                    onClick={() => setSelectedAccount(acct)}
+                    className={`tt-pill ${isActive ? 'tt-pill-active' : ''}`}
+                    aria-label={`Select profile ${acct}`}
+                  >
+                    <span className="tt-pill-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                          d="M12 12c2.761 0 5-2.239 5-5S14.761 2 12 2 7 4.239 7 7s2.239 5 5 5Z"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M20 22a8 8 0 0 0-16 0"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </span>
+                    <span className="tt-pill-text">{acct}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="tt-period-controls">
+            <label htmlFor="period-select" className="tt-label">
+              Statement Period
+            </label>
+
+            {currentStatementPeriodLoading && <p className="tt-empty">Loading statement periods...</p>}
+            {currentStatementPeriodError && <p className="tt-error">Failed to load current statement period.</p>}
+
+            <select
+              id="period-select"
+              value={selectedPeriod}
+              onChange={(e) => setSelectedPeriod(e.target.value)}
+              className="tt-select"
+            >
+              <option value="">All Periods</option>
+              {availablePeriods.map((period) => (
+                <option key={period} value={period}>
+                  {period}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="tt-subcard">
+          <div style={{ padding: '6px 6px 0' }}>
+            <div style={{ fontWeight: 950, letterSpacing: '0.02em' }}>Weekly Spending Averages</div>
+            <div style={{ marginTop: 6, color: 'rgba(230, 238, 248, 0.70)', fontSize: 12, lineHeight: 1.4 }}>
+              Excludes the current week. Weeks are counted from the first transaction week in the loaded window.
+            </div>
+          </div>
+
+          {anyPending && <p className="tt-empty">Loading transactions...</p>}
+          {anyError && <p className="tt-error">Failed to load transactions for averages.</p>}
+
+          {!anyPending && !anyError && (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: 12,
+                padding: 6,
+              }}
+            >
+              {metricConfig.map((cfg) => {
+                const stat = metrics[cfg.key]
+                return (
+                  <div
+                    key={cfg.key}
+                    className="tt-row"
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 10,
+                      padding: 14,
+                      minHeight: 110,
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
+                      <div>
+                        <div style={{ fontWeight: 950 }}>{cfg.title}</div>
+                        <div style={{ marginTop: 4, fontSize: 12, color: 'rgba(230, 238, 248, 0.70)' }}>{cfg.subtitle}</div>
+                      </div>
+                      <div style={{ fontWeight: 950, color: '#8db0ff' }}>{formatMoney(stat.weeklyAverage)}</div>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 12, color: 'rgba(230, 238, 248, 0.72)' }}>
+                      <div>Weeks counted: {stat.weeks}</div>
+                      <div>Total: {formatMoney(stat.total)}</div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </MainLayout>
+  )
+}

@@ -351,6 +351,29 @@
     color: var(--tt-color-text);
 }
 
+.tt-crit-title-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 0;
+  text-align: left;
+  gap: 3px;
+}
+
+.tt-crit-subline {
+  color: var(--tt-color-muted);
+  font-size: 0.85rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.tt-crit-title-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tt-crit-breakdown {
     font-size: 0.78rem;
     color: var(--tt-color-muted);
@@ -676,4 +699,18 @@
 
 .tt-crit-delete:hover {
   background: rgba(255, 138, 138, 0.16);
+}
+
+.tt-crit-right-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  flex: 0 0 auto;
+  gap: 3px;
+  text-align: right;
+}
+
+.tt-crit-right-sub {
+  text-align: right;
 }
