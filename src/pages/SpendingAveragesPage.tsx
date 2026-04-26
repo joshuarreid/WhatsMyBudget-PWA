@@ -6,6 +6,7 @@ import { useCalculateWeeks } from '../features/transactions/hooks/useCalculateWe
 import { useWeeklyAverage } from '../features/transactions/hooks/useWeeklyAverage'
 import type { BudgetTransaction } from '../api/transactions/transactions.types'
 import './DashboardPage.css'
+import { Modal } from '../components/Modal'
 
 const ACCOUNTS = ['josh', 'joint', 'anna'] as const
 
