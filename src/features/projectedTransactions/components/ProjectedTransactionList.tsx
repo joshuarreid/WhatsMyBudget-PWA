@@ -5,6 +5,9 @@ interface ProjectedTransactionListProps {
   transactions?: ProjectedTransaction[]
 }
 
+const formatCurrency = (value: number) =>
+  value.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
+
 export const ProjectedTransactionList = ({ transactions }: ProjectedTransactionListProps) => {
   const deleteMutation = useDeleteProjectedTransaction()
 
@@ -21,7 +24,7 @@ export const ProjectedTransactionList = ({ transactions }: ProjectedTransactionL
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+    <div className="tt-crit-txns-list">
       {safeTransactions.map((transaction: any) => {
         const title = transaction.description || transaction.name || 'Projected Transaction'
         const dateValue =
@@ -29,7 +32,7 @@ export const ProjectedTransactionList = ({ transactions }: ProjectedTransactionL
         const amountClass = transaction.amount < 0 ? 'tt-row-amount-neg' : 'tt-row-amount-pos'
 
         return (
-          <div key={transaction.id} className="tt-row tt-row-projected">
+          <div key={transaction.id} className="tt-row tt-row-projected tt-crit-txn-row">
             <div className="tt-row-top">
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
                 <span className="tt-badge">Projected</span>
@@ -37,7 +40,7 @@ export const ProjectedTransactionList = ({ transactions }: ProjectedTransactionL
                   {title}
                 </strong>
               </div>
-              <strong className={amountClass}>${Math.abs(transaction.amount).toFixed(2)}</strong>
+              <strong className={amountClass}>{formatCurrency(Math.abs(transaction.amount))}</strong>
             </div>
 
             <div className="tt-row-meta">
@@ -48,19 +51,7 @@ export const ProjectedTransactionList = ({ transactions }: ProjectedTransactionL
             </div>
 
             {transaction.id != null && (
-              <button
-                onClick={() => handleDelete(transaction.id)}
-                style={{
-                  marginTop: '8px',
-                  padding: '0.25rem 0.5rem',
-                  fontSize: '0.875rem',
-                  backgroundColor: '#dc3545',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                }}
-              >
+              <button type="button" className="tt-crit-delete" onClick={() => handleDelete(transaction.id)}>
                 Delete
               </button>
             )}
