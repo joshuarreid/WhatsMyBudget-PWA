@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { MainLayout } from '../layouts/MainLayout'
 import { useTransactions } from '../features/transactions/hooks/useTransactions'
 import { useProjectedTransactions } from '../features/projectedTransactions/hooks/useProjectedTransactions'
@@ -8,6 +8,7 @@ import { useCurrentStatementPeriod } from '../features/statements/hooks/useCurre
 import { useCriticalitySummaries } from '../features/transactions/hooks/useCriticalitySummaries'
 import { CriticalitySummaryWidget } from '../features/transactions/components/CriticalitySummaryWidget'
 import { useProfileStore } from '../store/useProfileStore'
+import { useStatementPeriodStore } from '../store/useStatementPeriodStore'
 import './DashboardPage.css'
 
 const MONTHS = [
@@ -74,23 +75,13 @@ const buildStatementPeriodWindow = (current: string | null | undefined): string[
 
 export const DashboardPage = () => {
   const selectedAccount = useProfileStore((state) => state.profile)
-  const [selectedPeriod, setSelectedPeriod] = useState<string>('')
+  const selectedPeriod = useStatementPeriodStore(s => s.selectedPeriod)
 
   const {
     data: currentStatementPeriod,
     isPending: currentStatementPeriodLoading,
     isError: currentStatementPeriodError,
   } = useCurrentStatementPeriod()
-
-  const availablePeriods = useMemo(() => {
-    return buildStatementPeriodWindow(currentStatementPeriod?.statementPeriod)
-  }, [currentStatementPeriod])
-
-  useEffect(() => {
-    if (selectedPeriod) return
-    if (availablePeriods.length === 0) return
-    setSelectedPeriod(availablePeriods[4])
-  }, [selectedPeriod, availablePeriods])
 
   const filters = useMemo(() => {
     return selectedPeriod ? { statementPeriod: selectedPeriod } : undefined
@@ -127,78 +118,49 @@ export const DashboardPage = () => {
 
   return (
     <MainLayout>
-      <div className="tt-card">
-        <div className="tt-controls">
-          <div className="tt-period-controls">
-            <label htmlFor="period-select" className="tt-label">
-              Statement Period
-            </label>
-
-            {currentStatementPeriodLoading && <p className="tt-empty">Loading statement periods...</p>}
-            {currentStatementPeriodError && (
-              <p className="tt-error">Failed to load current statement period.</p>
-            )}
-
-            <select
-              id="period-select"
-              value={selectedPeriod}
-              onChange={(e) => setSelectedPeriod(e.target.value)}
-              className="tt-select"
-            >
-              <option value="">All Periods</option>
-              {availablePeriods.map((period) => (
-                <option key={period} value={period}>
-                  {period}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {selectedPeriod && (
+      <div>
+        <div className="tt-card">
+          {selectedPeriod && (
+            <div className="tt-subcard">
+              {criticalityPending && <p className="tt-empty">Loading criticality summary...</p>}
+              {criticalityError && (
+                <p className="tt-error">Failed to load criticality summary.</p>
+              )}
+              {criticalityDetails && (
+                <CriticalitySummaryWidget
+                  account={selectedAccount}
+                  statementPeriod={selectedPeriod}
+                  essential={criticalityDetails.summaries.essential}
+                  nonessential={criticalityDetails.summaries.nonessential}
+                  essentialByCategory={criticalityDetails.essential.byCategory}
+                  nonessentialByCategory={criticalityDetails.nonessential.byCategory}
+                  essentialActual={criticalityDetails.essential.actual}
+                  essentialProjected={criticalityDetails.essential.projected}
+                  nonessentialActual={criticalityDetails.nonessential.actual}
+                  nonessentialProjected={criticalityDetails.nonessential.projected}
+                />
+              )}
+            </div>
+          )}
           <div className="tt-subcard">
-            {criticalityPending && <p className="tt-empty">Loading criticality summary...</p>}
-            {criticalityError && (
-              <p className="tt-error">Failed to load criticality summary.</p>
-            )}
-            {criticalityDetails && (
-              <CriticalitySummaryWidget
-                account={selectedAccount}
-                statementPeriod={selectedPeriod}
-                essential={criticalityDetails.summaries.essential}
-                nonessential={criticalityDetails.summaries.nonessential}
-                essentialByCategory={criticalityDetails.essential.byCategory}
-                nonessentialByCategory={criticalityDetails.nonessential.byCategory}
-                essentialActual={criticalityDetails.essential.actual}
-                essentialProjected={criticalityDetails.essential.projected}
-                nonessentialActual={criticalityDetails.nonessential.actual}
-                nonessentialProjected={criticalityDetails.nonessential.projected}
-              />
-            )}
+            {projectedLoading && <p className="tt-empty">Loading projected transactions...</p>}
+            <div className="tt-body">
+              {projectedTransactions ? (
+                <ProjectedTransactionList transactions={sortedProjectedTransactions} />
+              ) : (
+                <div className="tt-empty" />
+              )}
+            </div>
           </div>
-        )}
-
-        <div className="tt-subcard">
-          {/* Removed Projected Transactions section header */}
-          {projectedLoading && <p className="tt-empty">Loading projected transactions...</p>}
-          <div className="tt-body">
-            {projectedTransactions ? (
-              <ProjectedTransactionList transactions={sortedProjectedTransactions} />
-            ) : (
-              <div className="tt-empty" />
-            )}
-          </div>
-        </div>
-
-        <div className="tt-subcard">
-          {/* Removed Transactions section header */}
-          {transactionsLoading && <p className="tt-empty">Loading transactions...</p>}
-          <div className="tt-body">
-            {transactions ? (
-              <TransactionList transactions={sortedActualTransactions} />
-            ) : (
-              <div className="tt-empty" />
-            )}
+          <div className="tt-subcard">
+            {transactionsLoading && <p className="tt-empty">Loading transactions...</p>}
+            <div className="tt-body">
+              {transactions ? (
+                <TransactionList transactions={sortedActualTransactions} />
+              ) : (
+                <div className="tt-empty" />
+              )}
+            </div>
           </div>
         </div>
       </div>
