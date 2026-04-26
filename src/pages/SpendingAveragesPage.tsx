@@ -8,6 +8,7 @@ import './DashboardPage.css'
 import { TransactionList } from '../features/transactions/components/TransactionList'
 import { Modal } from '../components/Modal'
 import type { BudgetTransaction } from '../api/transactions/transactions.types'
+import { useProfileStore } from '../store/useProfileStore'
 
 const ACCOUNTS = ['josh', 'joint', 'anna'] as const
 
@@ -94,7 +95,8 @@ function classifyMetric(category: string): MetricKey | null {
 }
 
 export function SpendingAveragesPage() {
-  const [selectedAccount, setSelectedAccount] = useState<Account>('josh')
+  const selectedAccount = useProfileStore((state) => state.profile)
+  const setSelectedAccount = useProfileStore((state) => state.setProfile)
   const [selectedPeriod, setSelectedPeriod] = useState<string>('')
 
   const {
