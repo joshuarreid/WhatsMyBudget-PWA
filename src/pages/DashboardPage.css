@@ -724,65 +724,6 @@ html, body, #root, .main-layout, .dashboard-page-root {
   box-shadow: none !important;
 }
 
-/* Ensure DashboardPage root container prevents horizontal scroll */
-.dashboard-page-root {
-  width: 100vw;
-  box-sizing: border-box;
-  overflow-x: hidden;
-}
-
-/* Remove card border if at viewport edge */
-.tt-card {
-  border: none !important;
-  box-shadow: none !important;
-}
-
-/* Remove subcard and modal borders if at viewport edge */
-.tt-subcard, .tt-modal, .tt-modal-overlay {
-  border: none !important;
-  box-shadow: none !important;
-}
-
-/* Remove any border from the modal overlay */
-.tt-modal-overlay {
-  border: none !important;
-  box-shadow: none !important;
-}
-
-/* Prevent horizontal scroll on cards */
-.tt-card, .tt-subcard, .tt-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-  box-sizing: border-box;
-}
-
-/*
- * Horizontally align the essential and nonessential rings in the same card
- */
-.tt-crit-ring-row {
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  justify-content: center;
-  gap: 32px;
-  width: 100%;
-}
-
-.tt-crit-ring-box {
-  flex: 1 1 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
-  padding: 12px 0;
-}
-
-@media (max-width: 600px) {
-  .tt-crit-ring-row {
-    gap: 12px;
-  }
-  .tt-crit-ring-box {
     padding: 8px 0;
   }
 }

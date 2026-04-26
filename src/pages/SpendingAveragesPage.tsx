@@ -100,10 +100,10 @@ export function SpendingAveragesPage() {
               <div style={{ padding: '6px 6px 0' }}>
                 <div style={{ fontWeight: 950, letterSpacing: '0.02em' }}>Weekly Spending Averages</div>
               </div>
-
+              {anyPending && <p className="tt-empty">Loading transactions...</p>}
               {anyPending && <p className="tt-empty">Loading transactions...</p>}
               {anyError && <p className="tt-error">Failed to load transactions for averages.</p>}
-
+              {!anyPending && !anyError && (
               {!anyPending && !anyError && (
                 <div
                   style={{
@@ -311,7 +311,5 @@ export function SpendingAveragesPage() {
         >
           <TransactionList transactions={modalTransactions} />
         </Modal>
-      </div>
-    </MainLayout>
   )
 }
