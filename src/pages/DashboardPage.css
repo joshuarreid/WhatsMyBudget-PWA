@@ -120,40 +120,56 @@
 /* iPhone / touch-first sizing (way bigger) */
 @media (max-width: 520px) {
   .tt-tabs {
-    gap: 14px;
+    gap: 10px;
+    flex-wrap: nowrap;
   }
 
   .tt-pill {
-    min-height: 120px;
-    min-width: 150px;
-    padding: 18px 18px;
+    /* force 3-up layout without wrapping */
+    flex: 1 1 0;
+    min-width: 0;
+
+    min-height: 108px;
+    padding: 14px 12px;
     border-radius: 18px;
   }
 
   .tt-pill-icon {
-    width: 72px;
-    height: 72px;
+    width: 64px;
+    height: 64px;
   }
 
   .tt-pill-icon svg {
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
   }
 
   .tt-pill-text {
-    font-size: 1.25rem;
+    font-size: 1.05rem;
   }
 }
 
-/* Very small devices: allow them to fill a row nicely */
+/* Very small devices */
 @media (max-width: 380px) {
   .tt-tabs {
-    gap: 12px;
+    gap: 8px;
+    flex-wrap: nowrap;
   }
 
   .tt-pill {
-    min-width: 44vw;
-    min-height: 124px;
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 102px;
+    padding: 12px 10px;
+  }
+
+  .tt-pill-icon {
+    width: 58px;
+    height: 58px;
+  }
+
+  .tt-pill-text {
+    font-size: 0.98rem;
   }
 }
 
@@ -320,20 +336,36 @@
 
 .tt-crit-stat {
   display: flex;
-  gap: 12px;
+  flex-direction: column;
+  gap: 10px;
   align-items: center;
-  padding: 10px;
+  text-align: center;
+  padding: 12px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(0, 0, 0, 0.18);
 }
 
+.tt-crit-title {
+  font-weight: 950;
+}
+
+.tt-crit-breakdown {
+  font-size: 0.78rem;
+  color: var(--tt-color-muted);
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
 .tt-crit-ring {
-  width: 64px;
-  height: 64px;
+  width: 96px;
+  height: 96px;
   border-radius: 50%;
   padding: 4px;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+  flex: 0 0 auto;
 }
 
 .tt-crit-ring-inner {
@@ -345,43 +377,26 @@
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  line-height: 1;
+  line-height: 1.1;
+  padding: 8px;
+  text-align: center;
 }
 
-.tt-crit-count {
-  font-weight: 950;
-  font-size: 1.1rem;
-}
-
+/* count/txns are no longer used but keep them hidden in case markup returns */
+.tt-crit-count,
 .tt-crit-label {
-  font-size: 0.7rem;
-  color: var(--tt-color-muted);
-  font-weight: 800;
-  margin-top: 2px;
+  display: none;
 }
 
+/* NOTE: `.tt-crit-meta` is no longer used by the CriticalitySummaryWidget */
 .tt-crit-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.tt-crit-title {
-  font-weight: 950;
+  display: none;
 }
 
 .tt-crit-amount {
   color: var(--tt-color-text);
-  font-weight: 900;
-}
-
-.tt-crit-breakdown {
-  font-size: 0.78rem;
-  color: var(--tt-color-muted);
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+  font-weight: 950;
+  font-size: 1.05rem;
 }
 
 .tt-crit-actual {
