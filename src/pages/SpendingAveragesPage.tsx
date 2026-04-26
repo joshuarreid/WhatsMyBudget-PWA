@@ -161,27 +161,14 @@ export function SpendingAveragesPage() {
     if (selectedAccount === 'josh' && selectedPeriod === 'APRIL2026') {
       const splitTx = allTransactions.filter((t: BudgetTransaction) => t.name?.startsWith('[Split]'))
       const splitDiningOutTx = splitTx.filter((t: BudgetTransaction) => classifyMetric(t.category) === 'diningOut')
-      // eslint-disable-next-line no-console
-      console.log(`[Split] transactions in allTransactions: count=`, splitTx.length, splitTx)
-      // eslint-disable-next-line no-console
-      console.log(`[Split] Dining Out transactions: count=`, splitDiningOutTx.length, splitDiningOutTx)
     }
   }, [allTransactions, selectedAccount, selectedPeriod])
 
   // DEBUG: Show all transactions for the selected account and period
   useEffect(() => {
-    // eslint-disable-next-line no-console
-    console.log('All Transactions for', selectedAccount, selectedPeriod, allTransactions)
-    // eslint-disable-next-line no-console
-    console.log('Dining Out Transactions:', diningOutTransactions)
   }, [allTransactions, diningOutTransactions, selectedAccount, selectedPeriod])
 
-  // DEBUG: Log the raw API response for personal and joint transactions
   useEffect(() => {
-    // eslint-disable-next-line no-console
-    console.log('RAW API RESPONSE - personalTxData:', personalTxData)
-    // eslint-disable-next-line no-console
-    console.log('RAW API RESPONSE - jointTxData:', jointTxData)
   }, [personalTxData, jointTxData])
 
   return (
