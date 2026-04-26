@@ -714,3 +714,44 @@
 .tt-crit-right-sub {
   text-align: right;
 }
+
+/* Prevent horizontal scrolling on mobile and desktop */
+html, body, #root, .main-layout, .dashboard-page-root {
+  max-width: 100vw;
+  overflow-x: hidden !important;
+  position: relative;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Ensure DashboardPage root container prevents horizontal scroll */
+.dashboard-page-root {
+  width: 100vw;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+/* Remove card border if at viewport edge */
+.tt-card {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove subcard and modal borders if at viewport edge */
+.tt-subcard, .tt-modal, .tt-modal-overlay {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove any border from the modal overlay */
+.tt-modal-overlay {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Prevent horizontal scroll on cards */
+.tt-card, .tt-subcard, .tt-body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}

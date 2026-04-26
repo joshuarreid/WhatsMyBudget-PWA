@@ -49,7 +49,7 @@ export const DashboardPage = () => {
 
   return (
     <MainLayout>
-      <div>
+      <div className="dashboard-page-root">
         <div className="tt-card">
           {selectedPeriod && (
             <div className="tt-subcard">

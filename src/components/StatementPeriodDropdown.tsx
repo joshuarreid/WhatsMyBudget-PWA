@@ -39,6 +39,7 @@ export const StatementPeriodDropdown: React.FC<StatementPeriodDropdownProps> = (
     <div
       style={{
         width: '100vw',
+        maxWidth: '100vw', // Prevent horizontal overflow
         background: '#181922',
         boxShadow: '0 2px 8px 0 rgba(0,0,0,0.18)',
         borderBottom: '1px solid #23242a',
@@ -49,6 +50,8 @@ export const StatementPeriodDropdown: React.FC<StatementPeriodDropdownProps> = (
         fontFamily: 'var(--sans)',
         color: 'var(--text, #e6eef8)',
         overflowX: 'auto',
+        overscrollBehaviorX: 'contain', // Prevent scroll chaining
+        boxSizing: 'border-box', // Ensure padding doesn't cause overflow
       }}
     >
       {/* Removed label */}
@@ -64,6 +67,8 @@ export const StatementPeriodDropdown: React.FC<StatementPeriodDropdownProps> = (
           outline: 'none',
           scrollbarWidth: 'none', // Firefox
           msOverflowStyle: 'none', // IE/Edge
+          overscrollBehaviorX: 'contain', // Prevent scroll chaining
+          minWidth: 0, // Prevent flex overflow
         }}
         onBlur={handleBlur}
         className="hide-scrollbar"
