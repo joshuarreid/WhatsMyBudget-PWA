@@ -74,6 +74,7 @@ export const DashboardPage = () => {
             </div>
           )}
           <div className="tt-subcard">
+            <div className="tt-section-title">Projected Transactions</div>
             {projectedLoading && <p className="tt-empty">Loading projected transactions...</p>}
             <div className="tt-body">
               {projectedTransactions ? (
@@ -84,6 +85,7 @@ export const DashboardPage = () => {
             </div>
           </div>
           <div className="tt-subcard">
+            <div className="tt-section-title">Posted Transactions</div>
             {transactionsLoading && <p className="tt-empty">Loading transactions...</p>}
             <div className="tt-body">
               {transactions ? (
@@ -91,6 +93,8 @@ export const DashboardPage = () => {
               ) : (
                 <div className="tt-empty" />
               )}
+            </div>
+          </div>
         </div>
       </div>
     </MainLayout>
