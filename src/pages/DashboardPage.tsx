@@ -7,6 +7,7 @@ import { ProjectedTransactionList } from '../features/projectedTransactions/comp
 import { useCurrentStatementPeriod } from '../features/statements/hooks/useCurrentStatementPeriod'
 import { useCriticalitySummaries } from '../features/transactions/hooks/useCriticalitySummaries'
 import { CriticalitySummaryWidget } from '../features/transactions/components/CriticalitySummaryWidget'
+import { useProfileStore } from '../store/useProfileStore'
 import './DashboardPage.css'
 
 const ACCOUNTS = ['josh', 'joint', 'anna'] as const
@@ -76,7 +77,8 @@ const buildStatementPeriodWindow = (current: string | null | undefined): string[
 }
 
 export const DashboardPage = () => {
-  const [selectedAccount, setSelectedAccount] = useState<Account>('josh')
+  const selectedAccount = useProfileStore((state) => state.profile)
+  const setSelectedAccount = useProfileStore((state) => state.setProfile)
   const [selectedPeriod, setSelectedPeriod] = useState<string>('')
 
   const {
