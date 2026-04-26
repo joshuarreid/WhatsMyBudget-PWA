@@ -17,6 +17,7 @@ export const StatementPeriodDropdown: React.FC<StatementPeriodDropdownProps> = (
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const selectedButtonRef = useRef<HTMLButtonElement>(null)
+  const prevSelectedPeriod = useRef<string | undefined>(undefined)
 
   // Center selected pill whenever selection or periods change
   useEffect(() => {
@@ -24,8 +25,11 @@ export const StatementPeriodDropdown: React.FC<StatementPeriodDropdownProps> = (
       const container = scrollContainerRef.current;
       const button = selectedButtonRef.current;
       const offset = button.offsetLeft - (container.clientWidth / 2) + (button.offsetWidth / 2);
-      container.scrollTo({ left: offset, behavior: 'smooth' });
+      // Only animate if the selection actually changed
+      const animate = prevSelectedPeriod.current !== undefined && prevSelectedPeriod.current !== selectedPeriod;
+      container.scrollTo({ left: offset, behavior: animate ? 'smooth' : 'auto' });
     }
+    prevSelectedPeriod.current = selectedPeriod;
   }, [selectedPeriod, availablePeriods]);
 
   // Optionally keep the blur handler as a fallback (no-op now)
