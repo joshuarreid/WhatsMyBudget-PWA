@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useProfileStore } from '../store/useProfileStore'
 import type { Account } from '../store/useProfileStore'
@@ -26,12 +26,30 @@ export function ProfileSwitcher() {
   const setSelectedAccount = useProfileStore((state) => state.setProfile)
   const [open, setOpen] = useState(false)
   const [hovered, setHovered] = useState<string | null>(null)
+  const ref = useRef<HTMLDivElement>(null)
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(event: MouseEvent | TouchEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    document.addEventListener('touchstart', handleClick)
+    return () => {
+      document.removeEventListener('mousedown', handleClick)
+      document.removeEventListener('touchstart', handleClick)
+    }
+  }, [open])
 
   // Only show the other profiles (not the selected one) as options
   const otherAccounts = ACCOUNTS.filter((acct) => acct !== selectedAccount)
 
   return (
     <div
+      ref={ref}
       style={{
         position: 'fixed',
         bottom: 100,
