@@ -336,7 +336,7 @@ export function SpendingAveragesPage() {
                   <span>🍽️🥗</span> <span>Food</span>
                 </div>
                 <div style={{ fontWeight: 900, fontSize: 36, color: '#ffe6b0', margin: '8px 0 0 0', letterSpacing: '-0.01em', textAlign: 'center' }}>
-                  {formatMoney((diningOutWeeklyAverage + groceriesWeeklyAverage) / 2)}
+                  {formatMoney(diningOutWeeklyAverage + groceriesWeeklyAverage)}
                 </div>
                 <div style={{ fontSize: 12, color: 'rgba(230,238,248,0.60)', marginTop: 4, textAlign: 'center' }}>
                   {Math.max(diningOutWeeks.length, groceriesWeeks.length)} weeks · {formatMoney(diningOutWeeks.reduce((sum, w) => sum + w.totalAmount, 0) + groceriesWeeks.reduce((sum, w) => sum + w.totalAmount, 0))}
