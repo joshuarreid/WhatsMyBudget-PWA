@@ -7,6 +7,7 @@ import { RequireAuth } from './features/auth/components/RequireAuth'
 import { session } from './api/auth/session'
 import { BottomNav } from './components/BottomNav'
 import { SpendingAveragesPage } from './pages/SpendingAveragesPage'
+import { ProfileSwitcher } from './components/ProfileSwitcher'
 
 const Routes = () => {
   const route = useCurrentRoute()
@@ -29,6 +30,7 @@ export const App = () => {
     <QueryClientProvider client={queryClient}>
       <Router>
         <Routes />
+        <ProfileSwitcher />
       </Router>
     </QueryClientProvider>
   )

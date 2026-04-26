@@ -10,10 +10,6 @@ import { Modal } from '../components/Modal'
 import type { BudgetTransaction } from '../api/transactions/transactions.types'
 import { useProfileStore } from '../store/useProfileStore'
 
-const ACCOUNTS = ['josh', 'joint', 'anna'] as const
-
-type Account = (typeof ACCOUNTS)[number]
-
 type ParsedStatementPeriod = {
   monthIndex: number
   year: number
@@ -96,7 +92,6 @@ function classifyMetric(category: string): MetricKey | null {
 
 export function SpendingAveragesPage() {
   const selectedAccount = useProfileStore((state) => state.profile)
-  const setSelectedAccount = useProfileStore((state) => state.setProfile)
   const [selectedPeriod, setSelectedPeriod] = useState<string>('')
 
   const {
@@ -193,42 +188,6 @@ export function SpendingAveragesPage() {
     <MainLayout>
       <div className="tt-card" style={{ minHeight: 'auto' }}>
         <div className="tt-controls">
-          <div>
-            <div className="tt-tabs">
-              {ACCOUNTS.map((acct) => {
-                const isActive = selectedAccount === acct
-                return (
-                  <button
-                    key={acct}
-                    onClick={() => setSelectedAccount(acct)}
-                    className={`tt-pill ${isActive ? 'tt-pill-active' : ''}`}
-                    aria-label={`Select profile ${acct}`}
-                  >
-                    <span className="tt-pill-icon" aria-hidden="true">
-                      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path
-                          d="M12 12c2.761 0 5-2.239 5-5S14.761 2 12 2 7 4.239 7 7s2.239 5 5 5Z"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M20 22a8 8 0 0 0-16 0"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </span>
-                    <span className="tt-pill-text">{acct}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
           <div className="tt-period-controls">
             <label htmlFor="period-select" className="tt-label">
               Statement Period
