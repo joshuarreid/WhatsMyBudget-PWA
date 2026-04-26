@@ -3,6 +3,16 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useProfileStore } from '../store/useProfileStore'
 import type { Account } from '../store/useProfileStore'
 
+const PRIMARY = '#2563eb'; // Project blue
+const PRIMARY_LIGHT = '#3b82f6'; // Lighter blue for hover
+const NEUTRAL_BG = '#f3f4f6'; // Light gray
+const NEUTRAL_BORDER = '#bbb';
+const NEUTRAL_TEXT = '#222';
+const WHITE = '#fff';
+const SELECTED_BG = '#e5e7eb'; // Modern gray for selected
+const SELECTED_BORDER = '#bbb'; // Gray border for selected
+const SELECTED_TEXT = '#222';
+
 const PROFILE_LABELS: Record<Account, string> = {
   josh: 'Josh',
   joint: 'Joint',
@@ -15,6 +25,7 @@ export function ProfileSwitcher() {
   const selectedAccount = useProfileStore((state) => state.profile)
   const setSelectedAccount = useProfileStore((state) => state.setProfile)
   const [open, setOpen] = useState(false)
+  const [hovered, setHovered] = useState<string | null>(null)
 
   // Only show the other profiles (not the selected one) as options
   const otherAccounts = ACCOUNTS.filter((acct) => acct !== selectedAccount)
@@ -46,6 +57,8 @@ export function ProfileSwitcher() {
                 setSelectedAccount(acct)
                 setOpen(false)
               }}
+              onMouseEnter={() => setHovered(acct)}
+              onMouseLeave={() => setHovered(null)}
               style={{
                 position: 'absolute',
                 bottom: 0,
@@ -53,9 +66,9 @@ export function ProfileSwitcher() {
                 width: 54,
                 height: 54,
                 borderRadius: '50%',
-                border: '2px solid #bbb',
-                background: '#f3f4f6',
-                color: '#222',
+                border: `2px solid ${hovered === acct ? PRIMARY : NEUTRAL_BORDER}`,
+                background: hovered === acct ? PRIMARY_LIGHT : NEUTRAL_BG,
+                color: hovered === acct ? WHITE : NEUTRAL_TEXT,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -63,12 +76,19 @@ export function ProfileSwitcher() {
                 fontSize: 16,
                 cursor: 'pointer',
                 outline: 'none',
-                boxShadow: '0 2px 8px 0 rgba(37,99,235,0.10)',
+                boxShadow: hovered === acct
+                  ? `0 2px 8px 0 rgba(37,99,235,0.18)`
+                  : '0 2px 8px 0 rgba(37,99,235,0.10)',
                 marginBottom: 0,
                 pointerEvents: open ? 'auto' : 'none',
+                transition: 'background 0.18s, border 0.18s, color 0.18s, box-shadow 0.18s',
               }}
               aria-label={`Switch to ${PROFILE_LABELS[acct]}`}
               tabIndex={open ? 0 : -1}
+              onFocus={e => e.currentTarget.style.boxShadow = `0 0 0 3px ${PRIMARY_LIGHT}`}
+              onBlur={e => e.currentTarget.style.boxShadow = hovered === acct
+                ? `0 2px 8px 0 rgba(37,99,235,0.18)`
+                : '0 2px 8px 0 rgba(37,99,235,0.10)'}
             >
               {PROFILE_LABELS[acct]}
             </motion.button>
@@ -82,9 +102,9 @@ export function ProfileSwitcher() {
             width: 54,
             height: 54,
             borderRadius: '50%',
-            border: '3px solid #2563eb',
-            background: '#2563eb',
-            color: '#fff',
+            border: `3px solid ${SELECTED_BORDER}`,
+            background: SELECTED_BG,
+            color: SELECTED_TEXT,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -92,11 +112,16 @@ export function ProfileSwitcher() {
             fontSize: 16,
             cursor: 'pointer',
             outline: 'none',
-            boxShadow: '0 2px 8px 0 rgba(37,99,235,0.18)',
+            boxShadow: `0 2px 8px 0 rgba(37,99,235,0.10)`,
             margin: '0 auto',
             position: 'relative',
             zIndex: 2,
+            transition: 'background 0.18s, border 0.18s, box-shadow 0.18s',
           }}
+          onMouseEnter={e => e.currentTarget.style.background = NEUTRAL_BG}
+          onMouseLeave={e => e.currentTarget.style.background = SELECTED_BG}
+          onFocus={e => e.currentTarget.style.boxShadow = `0 0 0 3px ${PRIMARY_LIGHT}`}
+          onBlur={e => e.currentTarget.style.boxShadow = `0 2px 8px 0 rgba(37,99,235,0.10)`}
         >
           {PROFILE_LABELS[selectedAccount]}
         </button>

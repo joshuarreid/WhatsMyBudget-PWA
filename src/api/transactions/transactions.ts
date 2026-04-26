@@ -22,12 +22,6 @@ const normalizeAccountTransactionsResponse = (
 ): AccountBudgetTransactionList => {
   const anyData = data as any
 
-  // DEBUG: Log the raw API response for diagnosis
-  if (typeof window !== 'undefined') {
-    // eslint-disable-next-line no-console
-    console.log('[normalizeAccountTransactionsResponse] account:', account, 'data:', anyData)
-  }
-
   // Standard shape
   if (anyData && Array.isArray(anyData.transactions)) {
     return anyData as AccountBudgetTransactionList
