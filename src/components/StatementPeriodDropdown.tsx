@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useRef, useEffect } from 'react'
 
 interface StatementPeriodDropdownProps {
   availablePeriods: string[]
@@ -15,6 +15,22 @@ export const StatementPeriodDropdown: React.FC<StatementPeriodDropdownProps> = (
   loading = false,
   error = false,
 }) => {
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const selectedButtonRef = useRef<HTMLButtonElement>(null)
+
+  // Center selected pill whenever selection or periods change
+  useEffect(() => {
+    if (selectedButtonRef.current && scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      const button = selectedButtonRef.current;
+      const offset = button.offsetLeft - (container.clientWidth / 2) + (button.offsetWidth / 2);
+      container.scrollTo({ left: offset, behavior: 'smooth' });
+    }
+  }, [selectedPeriod, availablePeriods]);
+
+  // Optionally keep the blur handler as a fallback (no-op now)
+  const handleBlur = () => {};
+
   return (
     <div
       style={{
@@ -25,45 +41,56 @@ export const StatementPeriodDropdown: React.FC<StatementPeriodDropdownProps> = (
         padding: '0.75rem 1rem',
         display: 'flex',
         alignItems: 'center',
-        gap: '1rem',
         minHeight: '56px',
         fontFamily: 'var(--sans)',
         color: 'var(--text, #e6eef8)',
+        overflowX: 'auto',
       }}
     >
-      <label htmlFor="period-select" style={{ fontWeight: 600, fontSize: '1rem', color: '#e6eef8', marginRight: 8 }}>
-        Statement Period
-      </label>
-      <select
-        id="period-select"
-        value={selectedPeriod}
-        onChange={e => setSelectedPeriod(e.target.value)}
+      {/* Removed label */}
+      <div
+        ref={scrollContainerRef}
+        tabIndex={0}
         style={{
-          font: 'inherit',
-          color: '#e6eef8',
-          background: '#23242a',
-          border: '1px solid #35363c',
-          borderRadius: 8,
-          padding: '0.4em 1.5em 0.4em 0.8em',
-          minWidth: 140,
-          maxWidth: 220,
-          boxShadow: 'none',
+          display: 'flex',
+          gap: 8,
+          overflowX: 'auto',
+          padding: '2px 0',
+          flex: 1,
           outline: 'none',
-          appearance: 'none',
-          WebkitAppearance: 'none',
-          MozAppearance: 'none',
-          transition: 'border-color 0.18s',
+          scrollbarWidth: 'none', // Firefox
+          msOverflowStyle: 'none', // IE/Edge
         }}
+        onBlur={handleBlur}
+        className="hide-scrollbar"
       >
-        <option value="">All Periods</option>
+        {/* Removed All Periods button */}
         {availablePeriods.map(period => (
-          <option key={period} value={period}>
+          <button
+            key={period}
+            type="button"
+            ref={selectedPeriod === period ? selectedButtonRef : undefined}
+            onClick={() => setSelectedPeriod(period)}
+            style={{
+              padding: '0.4em 1.1em',
+              borderRadius: 20,
+              border: selectedPeriod === period ? '2px solid #3b82f6' : '1px solid #35363c',
+              background: selectedPeriod === period ? '#23242a' : 'transparent',
+              color: selectedPeriod === period ? '#3b82f6' : '#e6eef8',
+              fontWeight: selectedPeriod === period ? 700 : 500,
+              fontSize: '1em',
+              cursor: 'pointer',
+              outline: 'none',
+              transition: 'border 0.18s, background 0.18s, color 0.18s',
+              whiteSpace: 'nowrap',
+            }}
+          >
             {period}
-          </option>
+          </button>
         ))}
-      </select>
-      {loading && <span style={{ color: '#e6eef8', opacity: 0.7, fontSize: '0.95em' }}>Loading...</span>}
-      {error && <span style={{ color: '#ff4d4f', fontSize: '0.95em' }}>Failed to load periods.</span>}
+      </div>
+      {loading && <span style={{ color: '#e6eef8', opacity: 0.7, fontSize: '0.95em', marginLeft: 12 }}>Loading...</span>}
+      {error && <span style={{ color: '#ff4d4f', fontSize: '0.95em', marginLeft: 12 }}>Failed to load periods.</span>}
     </div>
   )
 }
