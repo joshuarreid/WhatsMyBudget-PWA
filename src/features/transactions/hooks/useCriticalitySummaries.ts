@@ -4,10 +4,66 @@ import { criticalitySummaryQueryKeys } from '../../../api/transactions/criticali
 import { fetchAccountTransactionsByCriticality, buildCriticalitySummary } from '../../../api/transactions/criticalitySummary'
 import type { CriticalitySummary } from '../../../api/transactions/criticalitySummary.types'
 import { useProjectedTransactions } from '../../projectedTransactions/hooks/useProjectedTransactions'
+import type { BudgetTransaction } from '../../../api/transactions/transactions.types'
+import type { ProjectedTransaction } from '../../../api/projectedTransactions/projectedTransactions.types'
 
 export type CriticalitySummaries = {
   essential: CriticalitySummary
   nonessential: CriticalitySummary
+}
+
+export type CategoryBreakdownRow = {
+  category: string
+  actualTotal: number
+  projectedTotal: number
+}
+
+export type CriticalitySummaryDetails = {
+  summaries: CriticalitySummaries
+  essential: {
+    actual: BudgetTransaction[]
+    projected: ProjectedTransaction[]
+    byCategory: CategoryBreakdownRow[]
+  }
+  nonessential: {
+    actual: BudgetTransaction[]
+    projected: ProjectedTransaction[]
+    byCategory: CategoryBreakdownRow[]
+  }
+}
+
+const coerceAmount = (value: unknown): number => {
+  const n = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(n) ? n : 0
+}
+
+const buildByCategory = (args: {
+  actual: BudgetTransaction[]
+  projected: ProjectedTransaction[]
+}): CategoryBreakdownRow[] => {
+  const map = new Map<string, { actualTotal: number; projectedTotal: number }>()
+
+  for (const t of args.actual) {
+    const category = String((t as any).category ?? 'Uncategorized').trim() || 'Uncategorized'
+    const prev = map.get(category) ?? { actualTotal: 0, projectedTotal: 0 }
+    map.set(category, { ...prev, actualTotal: prev.actualTotal + coerceAmount((t as any).amount) })
+  }
+
+  for (const t of args.projected) {
+    const category = String((t as any).category ?? 'Uncategorized').trim() || 'Uncategorized'
+    const prev = map.get(category) ?? { actualTotal: 0, projectedTotal: 0 }
+    map.set(category, { ...prev, projectedTotal: prev.projectedTotal + coerceAmount((t as any).amount) })
+  }
+
+  return Array.from(map.entries())
+    .map(([category, totals]) => ({ category, ...totals }))
+    .sort((a, b) => {
+      const aTotal = a.actualTotal + a.projectedTotal
+      const bTotal = b.actualTotal + b.projectedTotal
+      // Desc by total, then alpha
+      if (bTotal !== aTotal) return bTotal - aTotal
+      return a.category.localeCompare(b.category)
+    })
 }
 
 export const useCriticalitySummaries = (account?: string, statementPeriod?: string) => {
@@ -50,14 +106,29 @@ export const useCriticalitySummaries = (account?: string, statementPeriod?: stri
     enabled,
   })
 
-  const data: CriticalitySummaries | undefined = useMemo(() => {
+  const data: CriticalitySummaryDetails | undefined = useMemo(() => {
     if (!enabled) return undefined
-    const essentialActual = essentialActualQuery.data ?? []
-    const nonessentialActual = nonessentialActualQuery.data ?? []
+    const essentialActual = (essentialActualQuery.data ?? []) as BudgetTransaction[]
+    const nonessentialActual = (nonessentialActualQuery.data ?? []) as BudgetTransaction[]
+
+    const essentialSummary = buildCriticalitySummary({ actual: essentialActual as any, projected: essentialProjected as any })
+    const nonessentialSummary = buildCriticalitySummary({ actual: nonessentialActual as any, projected: nonessentialProjected as any })
 
     return {
-      essential: buildCriticalitySummary({ actual: essentialActual as any, projected: essentialProjected as any }),
-      nonessential: buildCriticalitySummary({ actual: nonessentialActual as any, projected: nonessentialProjected as any }),
+      summaries: {
+        essential: essentialSummary,
+        nonessential: nonessentialSummary,
+      },
+      essential: {
+        actual: essentialActual,
+        projected: essentialProjected as ProjectedTransaction[],
+        byCategory: buildByCategory({ actual: essentialActual, projected: essentialProjected as ProjectedTransaction[] }),
+      },
+      nonessential: {
+        actual: nonessentialActual,
+        projected: nonessentialProjected as ProjectedTransaction[],
+        byCategory: buildByCategory({ actual: nonessentialActual, projected: nonessentialProjected as ProjectedTransaction[] }),
+      },
     }
   }, [
     enabled,

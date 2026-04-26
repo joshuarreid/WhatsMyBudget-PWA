@@ -103,7 +103,7 @@ export const DashboardPage = () => {
   const { data: projectedTransactions, isPending: projectedLoading } = useProjectedTransactions(selectedAccount, filters)
 
   const {
-    data: criticalitySummaries,
+    data: criticalityDetails,
     isPending: criticalityPending,
     isError: criticalityError,
   } = useCriticalitySummaries(selectedAccount, selectedPeriod)
@@ -200,12 +200,14 @@ export const DashboardPage = () => {
             {criticalityError && (
               <p className="tt-error">Failed to load criticality summary.</p>
             )}
-            {criticalitySummaries && (
+            {criticalityDetails && (
               <CriticalitySummaryWidget
                 account={selectedAccount}
                 statementPeriod={selectedPeriod}
-                essential={criticalitySummaries.essential}
-                nonessential={criticalitySummaries.nonessential}
+                essential={criticalityDetails.summaries.essential}
+                nonessential={criticalityDetails.summaries.nonessential}
+                essentialByCategory={criticalityDetails.essential.byCategory}
+                nonessentialByCategory={criticalityDetails.nonessential.byCategory}
               />
             )}
           </div>
