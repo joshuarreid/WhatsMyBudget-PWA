@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { MainLayout } from '../layouts/MainLayout'
 import { useCurrentStatementPeriod } from '../features/statements/hooks/useCurrentStatementPeriod'
 import { useTransactions } from '../features/transactions/hooks/useTransactions'
+import { useCalculateWeeks } from '../features/transactions/hooks/useCalculateWeeks'
+import { useWeeklyAverage } from '../features/transactions/hooks/useWeeklyAverage'
 import type { BudgetTransaction } from '../api/transactions/transactions.types'
 import './DashboardPage.css'
 
@@ -228,47 +230,16 @@ export function SpendingAveragesPage() {
 
   const [p1, p2, p3, p4, p5, p6] = statementPeriods
 
-  const t1 = useTransactions(selectedAccount, p1 ? { statementPeriod: p1 } : undefined)
-  const t2 = useTransactions(selectedAccount, p2 ? { statementPeriod: p2 } : undefined)
-  const t3 = useTransactions(selectedAccount, p3 ? { statementPeriod: p3 } : undefined)
-  const t4 = useTransactions(selectedAccount, p4 ? { statementPeriod: p4 } : undefined)
-  const t5 = useTransactions(selectedAccount, p5 ? { statementPeriod: p5 } : undefined)
-  const t6 = useTransactions(selectedAccount, p6 ? { statementPeriod: p6 } : undefined)
+  // Fetch transactions for the selected account and statement period only
+  const { data: txData, isPending: txPending, isError: txError } = useTransactions(selectedAccount, selectedPeriod ? { statementPeriod: selectedPeriod } : undefined)
 
-  const anyPending =
-    currentStatementPeriodLoading ||
-    t1.isPending ||
-    t2.isPending ||
-    t3.isPending ||
-    t4.isPending ||
-    t5.isPending ||
-    t6.isPending
+  const anyPending = currentStatementPeriodLoading || txPending
+  const anyError = currentStatementPeriodError || txError
 
-  const anyError =
-    currentStatementPeriodError ||
-    t1.isError ||
-    t2.isError ||
-    t3.isError ||
-    t4.isError ||
-    t5.isError ||
-    t6.isError
-
+  // Use only the filtered transactions
   const allTransactions = useMemo(() => {
-    const lists = [t1.data, t2.data, t3.data, t4.data, t5.data, t6.data]
-      .flatMap((d) => d?.transactions ?? [])
-      .filter(Boolean)
-
-    // De-dupe by id+date+amount in case the API overlaps across statement periods
-    const seen = new Set<string>()
-    const deduped: BudgetTransaction[] = []
-    for (const tx of lists) {
-      const key = `${tx.id}|${tx.transactionDate}|${tx.amount}`
-      if (seen.has(key)) continue
-      seen.add(key)
-      deduped.push(tx)
-    }
-    return deduped
-  }, [t1.data, t2.data, t3.data, t4.data, t5.data, t6.data])
+    return txData?.transactions ?? []
+  }, [txData])
 
   const statementPeriodStart = useMemo(() => {
     // Cache API provides statementPeriod, startDate, endDate
@@ -288,6 +259,11 @@ export function SpendingAveragesPage() {
     // (We still fetch a window for future, but averages are anchored to the selected period weeks.)
     return computeWeeklyAverages(allTransactions, statementPeriodStart, statementPeriodEnd)
   }, [allTransactions, statementPeriodStart, statementPeriodEnd])
+
+  // Calculate weeks for all transactions (for Gas)
+  const gasTransactions = allTransactions.filter((t) => classifyMetric(t.category) === 'gas')
+  const gasWeeks = useCalculateWeeks(gasTransactions)
+  const gasWeeklyAverage = useWeeklyAverage(gasWeeks)
 
   return (
     <MainLayout>
@@ -373,35 +349,19 @@ export function SpendingAveragesPage() {
                 padding: 6,
               }}
             >
-              {metricConfig.map((cfg) => {
-                const stat = metrics[cfg.key]
-                return (
-                  <div
-                    key={cfg.key}
-                    className="tt-row"
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 10,
-                      padding: 14,
-                      minHeight: 110,
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
-                      <div>
-                        <div style={{ fontWeight: 950 }}>{cfg.title}</div>
-                        <div style={{ marginTop: 4, fontSize: 12, color: 'rgba(230, 238, 248, 0.70)' }}>{cfg.subtitle}</div>
-                      </div>
-                      <div style={{ fontWeight: 950, color: '#8db0ff' }}>{formatMoney(stat.weeklyAverage)}</div>
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 12, color: 'rgba(230, 238, 248, 0.72)' }}>
-                      <div>Weeks counted: {stat.weeks}</div>
-                      <div>Total: {formatMoney(stat.total)}</div>
-                    </div>
+              {/* Gas Card Example using weeks */}
+              <div className="tt-row" style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14, minHeight: 110 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
+                  <div>
+                    <div style={{ fontWeight: 950 }}>Gas</div>
                   </div>
-                )
-              })}
+                  <div style={{ fontWeight: 950, color: '#8db0ff' }}>{formatMoney(gasWeeklyAverage)}</div>
+                </div>
+                <div style={{ fontSize: 12, color: 'rgba(230, 238, 248, 0.72)' }}>
+                  Weeks with gas transactions: {gasWeeks.length}
+                </div>
+              </div>
+              {/* ...other metric cards... */}
             </div>
           )}
         </div>
