@@ -5,6 +5,8 @@ import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
 import { RequireAuth } from './features/auth/components/RequireAuth'
 import { session } from './api/auth/session'
+import { BottomNav } from './components/BottomNav'
+import { SpendingAveragesPage } from './pages/SpendingAveragesPage'
 
 const Routes = () => {
   const route = useCurrentRoute()
@@ -16,7 +18,8 @@ const Routes = () => {
 
   return (
     <RequireAuth>
-      <DashboardPage />
+      {route === '/spending-averages' ? <SpendingAveragesPage /> : <DashboardPage />}
+      <BottomNav />
     </RequireAuth>
   )
 }

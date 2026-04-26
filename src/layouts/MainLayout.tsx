@@ -17,7 +17,14 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
         background: 'linear-gradient(180deg, #0f1115, #151516)',
       }}
     >
-      <main style={{ padding: '1rem', maxWidth: '1200px', margin: '0 auto' }}>
+      <main
+        style={{
+          padding: '1rem',
+          paddingBottom: '110px',
+          maxWidth: '1200px',
+          margin: '0 auto',
+        }}
+      >
         <div
           style={{
             display: 'grid',
