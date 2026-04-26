@@ -755,3 +755,34 @@ html, body, #root, .main-layout, .dashboard-page-root {
   overflow-x: hidden;
   box-sizing: border-box;
 }
+
+/*
+ * Horizontally align the essential and nonessential rings in the same card
+ */
+.tt-crit-ring-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: center;
+  gap: 32px;
+  width: 100%;
+}
+
+.tt-crit-ring-box {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 12px 0;
+}
+
+@media (max-width: 600px) {
+  .tt-crit-ring-row {
+    gap: 12px;
+  }
+  .tt-crit-ring-box {
+    padding: 8px 0;
+  }
+}
