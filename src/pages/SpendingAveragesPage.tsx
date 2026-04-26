@@ -6,6 +6,7 @@ import { useCalculateWeeks } from '../features/transactions/hooks/useCalculateWe
 import { useWeeklyAverage } from '../features/transactions/hooks/useWeeklyAverage'
 import './DashboardPage.css'
 import { TransactionList } from '../features/transactions/components/TransactionList'
+import { Modal } from '../components/Modal'
 
 const ACCOUNTS = ['josh', 'joint', 'anna'] as const
 
@@ -124,6 +125,7 @@ export function SpendingAveragesPage() {
   const gasWeeks = useCalculateWeeks(gasTransactions)
   const gasWeeklyAverage = useWeeklyAverage(gasWeeks)
 
+  const [modalOpen, setModalOpen] = useState(false)
   const [modalMetric, setModalMetric] = useState<MetricKey | null>(null)
 
   // Filter transactions for the selected metric
@@ -241,7 +243,7 @@ export function SpendingAveragesPage() {
                   </div>
                   <button
                     style={{ background: 'none', border: 'none', padding: 0, margin: 0, cursor: 'pointer', fontWeight: 950, color: '#8db0ff', fontSize: 28, letterSpacing: '-0.01em' }}
-                    onClick={() => { setModalMetric('gas') }}
+                    onClick={() => { setModalMetric('gas'); setModalOpen(true) }}
                     aria-label="Show gas transactions"
                   >
                     {formatMoney(gasWeeklyAverage)}
@@ -270,7 +272,13 @@ export function SpendingAveragesPage() {
           )}
         </div>
       </div>
-      <TransactionList transactions={modalTransactions} />
+      <Modal
+        isOpen={modalOpen}
+        onClose={() => { setModalOpen(false); setModalMetric(null) }}
+        title={modalMetric ? `${modalMetric.charAt(0).toUpperCase() + modalMetric.slice(1)} Transactions` : ''}
+      >
+        <TransactionList transactions={modalTransactions} />
+      </Modal>
     </MainLayout>
   )
 }
