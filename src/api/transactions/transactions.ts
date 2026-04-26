@@ -22,6 +22,12 @@ const normalizeAccountTransactionsResponse = (
 ): AccountBudgetTransactionList => {
   const anyData = data as any
 
+  // DEBUG: Log the raw API response for diagnosis
+  if (typeof window !== 'undefined') {
+    // eslint-disable-next-line no-console
+    console.log('[normalizeAccountTransactionsResponse] account:', account, 'data:', anyData)
+  }
+
   // Standard shape
   if (anyData && Array.isArray(anyData.transactions)) {
     return anyData as AccountBudgetTransactionList
@@ -32,6 +38,18 @@ const normalizeAccountTransactionsResponse = (
     josh: 'personalTransactions',
     anna: 'personalTransactions',
     joint: 'jointTransactions',
+  }
+
+  // For personal accounts, merge both personal and joint transactions
+  if (account === 'josh' || account === 'anna') {
+    const personal = anyData?.personalTransactions?.transactions ?? []
+    const joint = anyData?.jointTransactions?.transactions ?? []
+    return {
+      account,
+      transactions: [...personal, ...joint],
+      count: (anyData?.personalTransactions?.count ?? 0) + (anyData?.jointTransactions?.count ?? 0),
+      total: (anyData?.personalTransactions?.total ?? 0) + (anyData?.jointTransactions?.total ?? 0),
+    }
   }
 
   const bucketKey = mapKeyByAccount[account] ?? ''
