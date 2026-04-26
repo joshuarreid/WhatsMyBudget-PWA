@@ -271,6 +271,11 @@
     position: relative;
 }
 
+/* Remove yellow tint for projected row titles */
+.tt-row-projected .tt-row-title {
+  color: var(--tt-color-text);
+}
+
 .tt-row-projected::before {
     content: "";
     position: absolute;
@@ -502,6 +507,8 @@
     max-height: none;
     overflow: auto;
     position: relative;
+    width: 100%;
+    overflow-x: auto;
 }
 
 .tt-crit-table {
@@ -512,6 +519,7 @@
     height: 100%;
     display: flex;
     flex-direction: column;
+    box-sizing: border-box;
 }
 
 .tt-crit-table thead {
@@ -542,10 +550,19 @@
   table-layout: fixed;
 }
 
-.tt-crit-table tbody td, .tt-crit-table thead th, .tt-crit-table-total-row td {
+.tt-crit-table thead th,
+.tt-crit-table tbody td,
+.tt-crit-table-total-row td {
   height: 36px;
   min-height: 36px;
   vertical-align: middle;
+  box-sizing: border-box;
+}
+
+.tt-crit-table thead th:last-child,
+.tt-crit-table tbody td:last-child,
+.tt-crit-table-total-row td:last-child {
+  padding-right: 20px;
 }
 
 .tt-crit-table-total-row td {

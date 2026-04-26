@@ -20,27 +20,6 @@ const ringStyle = (projectedFraction: number, colorActual: string, colorProjecte
   }
 }
 
-const RingStat = (props: { label: string; summary: CriticalitySummary }) => {
-  const totalAmount = props.summary.actualTotal + props.summary.projectedTotal
-  const projectedFraction = totalAmount === 0 ? 0 : props.summary.projectedTotal / totalAmount
-
-  // Use blue for nonessential, green for essential
-  const isNonessential = props.label.toLowerCase().includes('nonessential')
-  const colorActual = isNonessential ? '#3b82f6' : '#1fbf75'
-  const colorProjected = '#f5c542'
-
-  return (
-    <div className="tt-crit-stat tt-crit-ring-box">
-      <div className="tt-crit-title">{props.label}</div>
-      <div className="tt-crit-ring" style={ringStyle(projectedFraction, colorActual, colorProjected)}>
-        <div className="tt-crit-ring-inner">
-          <div className="tt-crit-amount">{formatCurrency(totalAmount)}</div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 const DualRingStat = (props: {
   essential: CriticalitySummary
   nonessential: CriticalitySummary
