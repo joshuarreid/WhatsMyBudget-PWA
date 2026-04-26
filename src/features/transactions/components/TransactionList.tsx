@@ -4,23 +4,26 @@ interface TransactionListProps {
   transactions: BudgetTransaction[]
 }
 
+const formatCurrency = (value: number) =>
+  value.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
+
 export const TransactionList = ({ transactions }: TransactionListProps) => {
   if (transactions.length === 0) {
     return null // Render nothing for empty state
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+    <div className="tt-crit-txns-list">
       {transactions.map((transaction) => {
         const title = transaction.description || transaction.name || 'Transaction'
         const dateValue = (transaction as any).date ?? transaction.transactionDate
         const amountClass = transaction.amount < 0 ? 'tt-row-amount-neg' : 'tt-row-amount-pos'
 
         return (
-          <div key={transaction.id} className="tt-row">
+          <div key={transaction.id} className="tt-row tt-crit-txn-row">
             <div className="tt-row-top">
               <strong className="tt-row-title">{title}</strong>
-              <strong className={amountClass}>${Math.abs(transaction.amount).toFixed(2)}</strong>
+              <strong className={amountClass}>{formatCurrency(Math.abs(transaction.amount))}</strong>
             </div>
             <div className="tt-row-meta">
               <div>
