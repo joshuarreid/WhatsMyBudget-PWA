@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { BudgetTransaction } from '../api/transactions/transactions.types'
+import type { BudgetTransaction } from '../../../api/transactions/transactions.types'
 
 export type Week = {
   weekStart: Date

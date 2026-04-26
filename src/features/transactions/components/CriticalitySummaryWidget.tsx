@@ -208,7 +208,7 @@ export const CriticalitySummaryWidget = (props: {
 
       <Modal
         isOpen={isOpen}
-        onClose={onClose}xw
+        onClose={onClose}
         title={modalTitle}
         onBack={selectedCategory ? () => setSelectedCategory(null) : undefined}
         backLabel="Back to categories"

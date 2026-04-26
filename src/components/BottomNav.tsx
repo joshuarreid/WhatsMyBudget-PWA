@@ -1,3 +1,4 @@
+import React from 'react' // Ensure React types are imported for JSX namespace
 import { useCurrentRoute, useNavigate } from '../pages/router'
 
 type NavRoute = '/' | '/spending-averages'
@@ -5,7 +6,7 @@ type NavRoute = '/' | '/spending-averages'
 type NavItem = {
   route: NavRoute
   label: string
-  icon: (active: boolean) => JSX.Element
+  icon: (active: boolean) => React.ReactNode
 }
 
 const HomeIcon = ({ active }: { active: boolean }) => {
