@@ -4,6 +4,8 @@ export const Modal = (props: {
   isOpen: boolean
   title?: string
   onClose: () => void
+  onBack?: () => void
+  backLabel?: string
   children: ReactNode
 }) => {
   useEffect(() => {
@@ -29,7 +31,22 @@ export const Modal = (props: {
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="tt-modal-header">
+          <div className="tt-modal-left">
+            {props.onBack && (
+              <button
+                type="button"
+                className="tt-modal-back"
+                onClick={props.onBack}
+                aria-label={props.backLabel ?? 'Back'}
+                title={props.backLabel ?? 'Back'}
+              >
+                ←
+              </button>
+            )}
+          </div>
+
           <div className="tt-modal-title">{props.title}</div>
+
           <button type="button" className="tt-modal-close" onClick={props.onClose} aria-label="Close">
             ✕
           </button>
@@ -39,4 +56,3 @@ export const Modal = (props: {
     </div>
   )
 }
-

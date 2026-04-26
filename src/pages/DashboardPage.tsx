@@ -208,6 +208,10 @@ export const DashboardPage = () => {
                 nonessential={criticalityDetails.summaries.nonessential}
                 essentialByCategory={criticalityDetails.essential.byCategory}
                 nonessentialByCategory={criticalityDetails.nonessential.byCategory}
+                essentialActual={criticalityDetails.essential.actual}
+                essentialProjected={criticalityDetails.essential.projected}
+                nonessentialActual={criticalityDetails.nonessential.actual}
+                nonessentialProjected={criticalityDetails.nonessential.projected}
               />
             )}
           </div>

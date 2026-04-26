@@ -547,16 +547,41 @@
 }
 
 .tt-modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 12px 14px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  display: grid;
+  grid-template-columns: 48px 1fr 48px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tt-modal-left {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
 }
 
 .tt-modal-title {
-    font-weight: 950;
+  font-weight: 950;
+  text-align: center;
+}
+
+.tt-modal-back {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--tt-color-text);
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 950;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tt-modal-back:hover {
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .tt-modal-close {
@@ -590,4 +615,48 @@
     .tt-crit-modal-content {
         height: min(56vh, 520px);
     }
+}
+
+/* Make the breakdown rows feel clickable */
+.tt-crit-table tbody tr[role="button"] {
+  cursor: pointer;
+}
+
+.tt-crit-table tbody tr[role="button"]:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.tt-crit-table tbody tr[role="button"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(141, 176, 255, 0.16) inset;
+}
+
+.tt-crit-back {
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--tt-color-text);
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-weight: 900;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+
+.tt-crit-back:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.tt-crit-txns-section {
+  margin-top: 10px;
+}
+
+.tt-crit-txns-title {
+  font-weight: 950;
+  margin: 10px 0 8px;
+}
+
+.tt-crit-txns-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
