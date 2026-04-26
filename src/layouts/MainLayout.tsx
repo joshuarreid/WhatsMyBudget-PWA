@@ -18,8 +18,10 @@ const Header = ({ authed, logout }: { authed: boolean, logout: () => void }) => 
       gap: '0.75rem',
       minHeight: '44px',
       background: 'transparent',
-      position: 'relative',
-      zIndex: 2,
+      position: 'sticky',
+      top: 0,
+      zIndex: 20,
+      backgroundColor: '#181922',
     }}
   >
     <div />
