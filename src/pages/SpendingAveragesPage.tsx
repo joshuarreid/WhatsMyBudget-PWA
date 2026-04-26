@@ -11,68 +11,6 @@ import type { BudgetTransaction } from '../api/transactions/transactions.types'
 import { useProfileStore } from '../store/useProfileStore'
 import { useStatementPeriodStore } from '../store/useStatementPeriodStore'
 
-type ParsedStatementPeriod = {
-  monthIndex: number
-  year: number
-}
-
-const MONTHS = [
-  'JANUARY',
-  'FEBRUARY',
-  'MARCH',
-  'APRIL',
-  'MAY',
-  'JUNE',
-  'JULY',
-  'AUGUST',
-  'SEPTEMBER',
-  'OCTOBER',
-  'NOVEMBER',
-  'DECEMBER',
-] as const
-
-type MonthName = (typeof MONTHS)[number]
-
-const parseStatementPeriod = (period: string): ParsedStatementPeriod | null => {
-  const match = /^([A-Z]+)(\d{4})$/.exec(period.trim().toUpperCase())
-  if (!match) return null
-
-  const monthName = match[1] as MonthName
-  const monthIndex = MONTHS.indexOf(monthName)
-  if (monthIndex === -1) return null
-
-  const year = Number(match[2])
-  if (!Number.isFinite(year)) return null
-
-  return { monthIndex, year }
-}
-
-const formatStatementPeriod = (monthIndex: number, year: number): string => {
-  return `${MONTHS[monthIndex]}${year}`
-}
-
-const addMonths = (value: ParsedStatementPeriod, deltaMonths: number): ParsedStatementPeriod => {
-  const total = value.year * 12 + value.monthIndex + deltaMonths
-  const year = Math.floor(total / 12)
-  const monthIndex = ((total % 12) + 12) % 12
-  return { year, monthIndex }
-}
-
-const buildStatementPeriodWindow = (current: string | null | undefined, monthsBack: number): string[] => {
-  if (!current) return []
-  const parsed = parseStatementPeriod(current)
-  if (!parsed) return []
-
-  const periods: string[] = []
-  for (let offset = -monthsBack; offset <= 0; offset++) {
-    const p = addMonths(parsed, offset)
-    periods.push(formatStatementPeriod(p.monthIndex, p.year))
-  }
-
-  return periods
-}
-
-// Utility functions for metrics
 function formatMoney(amount: number) {
   return amount.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 }
@@ -96,7 +34,6 @@ export function SpendingAveragesPage() {
   const selectedPeriod = useStatementPeriodStore(s => s.selectedPeriod)
 
   const {
-    data: currentStatementPeriod,
     isPending: currentStatementPeriodLoading,
     isError: currentStatementPeriodError,
   } = useCurrentStatementPeriod()
@@ -146,14 +83,6 @@ export function SpendingAveragesPage() {
     if (!modalMetric) return []
     return allTransactions.filter((t: BudgetTransaction) => classifyMetric(t.category) === modalMetric)
   }, [modalMetric, allTransactions])
-
-  // DEBUG: Show [Split] transactions in allTransactions for josh
-  useEffect(() => {
-    if (selectedAccount === 'josh' && selectedPeriod === 'APRIL2026') {
-      const splitTx = allTransactions.filter((t: BudgetTransaction) => t.name?.startsWith('[Split]'))
-      const splitDiningOutTx = splitTx.filter((t: BudgetTransaction) => classifyMetric(t.category) === 'diningOut')
-    }
-  }, [allTransactions, selectedAccount, selectedPeriod])
 
   // DEBUG: Show all transactions for the selected account and period
   useEffect(() => {
