@@ -49,7 +49,6 @@ export function useInitStatementPeriod() {
   const setSelectedPeriod = useStatementPeriodStore(s => s.setSelectedPeriod);
   const setLoading = useStatementPeriodStore(s => s.setLoading);
   const setError = useStatementPeriodStore(s => s.setError);
-  const availablePeriods = useStatementPeriodStore(s => s.availablePeriods);
   const selectedPeriod = useStatementPeriodStore(s => s.selectedPeriod);
 
   useEffect(() => {
