@@ -5,6 +5,7 @@ export type Week = {
   weekStart: Date
   weekEnd: Date // exclusive
   transactions: BudgetTransaction[]
+  totalAmount: number // sum of transaction amounts for the week
 }
 
 function getMonday(d: Date): Date {
@@ -56,10 +57,10 @@ export function useCalculateWeeks(transactions: BudgetTransaction[]): Week[] {
         const dt = parseISODateOnly(t.transactionDate)
         return dt && dt >= weekStart && dt < weekEnd
       })
-      weeks.push({ weekStart: new Date(weekStart), weekEnd, transactions: weekTxs })
+      const totalAmount = weekTxs.reduce((sum, t) => sum + (typeof t.amount === 'number' ? t.amount : 0), 0)
+      weeks.push({ weekStart: new Date(weekStart), weekEnd, transactions: weekTxs, totalAmount })
       weekStart = weekEnd
     }
     return weeks
   }, [transactions])
 }
-
