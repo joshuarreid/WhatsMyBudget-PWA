@@ -50,14 +50,23 @@ const normalizeAccountTransactionsResponse = (
   }
 
   const bucketKey = mapKeyByAccount[account] ?? ''
-  const bucket = bucketKey ? normalizedData?.[bucketKey] : undefined
+  // normalizedData doesn't have a string index signature; use unknown and narrow safely
+  const bucket = bucketKey ? (normalizedData as Record<string, unknown>)?.[bucketKey] : undefined
 
-  if (bucket && Array.isArray(bucket.transactions)) {
+  // Narrow bucket to the expected shape: an object with an array `transactions` field
+  if (
+    bucket &&
+    typeof bucket === 'object' &&
+    bucket !== null &&
+    'transactions' in bucket &&
+    Array.isArray((bucket as { transactions?: unknown }).transactions)
+  ) {
+    const b = bucket as { transactions?: BudgetTransaction[]; count?: number; total?: number }
     return {
       account,
-      transactions: bucket.transactions as BudgetTransaction[],
-      count: typeof bucket.count === 'number' ? bucket.count : bucket.transactions.length,
-      total: typeof bucket.total === 'number' ? bucket.total : 0,
+      transactions: b.transactions ?? [],
+      count: typeof b.count === 'number' ? b.count : (b.transactions ?? []).length,
+      total: typeof b.total === 'number' ? b.total : 0,
     }
   }
 
