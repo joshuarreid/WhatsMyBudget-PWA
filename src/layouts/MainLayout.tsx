@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { session } from '../api/auth/session'
-import { useLogout } from '../features/auth/hooks/useLogout'
+import { useLogout } from '@/features/auth'
 import { useInitStatementPeriod } from '../store/useInitStatementPeriod'
 import { useStatementPeriodStore } from '../store/useStatementPeriodStore'
 import { StatementPeriodDropdown } from '../components/StatementPeriodDropdown'

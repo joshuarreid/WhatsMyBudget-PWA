@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useCurrentStatementPeriod } from '../features/statements/hooks/useCurrentStatementPeriod'
+import { useCurrentStatementPeriod } from '@/features/statements';
 import { useStatementPeriodStore } from './useStatementPeriodStore'
 
 const MONTHS = [

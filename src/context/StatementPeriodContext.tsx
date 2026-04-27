@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { useCurrentStatementPeriod } from '../features/statements/hooks/useCurrentStatementPeriod';
+import { useCurrentStatementPeriod } from '@/features/statements';
 
 const MONTHS = [
   'JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER',

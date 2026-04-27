@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { fileURLToPath, URL } from 'node:url'
 
 const parseAllowedHosts = (raw: string | undefined): string[] | undefined => {
   if (!raw) return undefined
@@ -13,6 +14,11 @@ const parseAllowedHosts = (raw: string | undefined): string[] | undefined => {
 }
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
   plugins: [
     react(),
     VitePWA({
