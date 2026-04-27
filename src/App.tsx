@@ -8,7 +8,9 @@ import { session } from './api/auth/session'
 import { BottomNav } from './components/BottomNav'
 import { SpendingAveragesPage } from './pages/SpendingAveragesPage'
 import { ProfileSwitcher } from './components/ProfileSwitcher'
-
+/*
+routes file
+ */
 const Routes = () => {
   const route = useCurrentRoute()
 
