@@ -1,9 +1,8 @@
 import { useMemo, useState, type CSSProperties } from 'react'
-import type { CriticalitySummary } from '../../../api/transactions/criticalitySummary.types'
-import type { CategoryBreakdownRow } from '../hooks/useCriticalitySummaries'
-import type { BudgetTransaction } from '../../../api/transactions/transactions.types'
-import type { ProjectedTransaction } from '../../../api/projectedTransactions/projectedTransactions.types'
-import { Modal } from '../../../components/Modal'
+import { Modal } from '@/components/Modal'
+import type { CriticalitySummary } from '@/api/transactions/criticalitySummary.types'
+import type { BudgetTransaction } from '@/api/transactions/transactions.types'
+import type { ProjectedTransaction } from '@/api/projectedTransactions/projectedTransactions.types'
 
 const formatCurrency = (value: number) =>
   value.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
@@ -60,6 +59,12 @@ const formatDate = (value: string | undefined) => {
 }
 
 const normalizeCategory = (value: unknown) => String(value ?? 'Uncategorized').trim() || 'Uncategorized'
+
+type CategoryBreakdownRow = {
+  category: string;
+  actualTotal: number;
+  projectedTotal: number;
+}
 
 const TxnList = (props: {
   title: string
@@ -181,13 +186,17 @@ export const CriticalitySummaryWidget = (props: {
     if (!selectedCategory) return []
     const cat = normalizeCategory(selectedCategory)
     return activeActual
-      .filter((t) => normalizeCategory((t as any).category) === cat)
-      .map((t) => ({
-        id: (t as any).id,
-        date: (t as any).date ?? (t as any).transactionDate,
-        description: (t as any).description ?? (t as any).name,
-        amount: Number((t as any).amount) || 0,
-      }))
+      .filter((t) => normalizeCategory(t.category) === cat)
+      .map((t) => {
+        let date: string | undefined = (t as BudgetTransaction).transactionDate
+        if (!date && isLegacyTransactionWithDate(t)) date = t.date
+        return {
+          id: t.id,
+          date,
+          description: t.description ?? t.name,
+          amount: Number(t.amount) || 0,
+        }
+      })
       .sort((a, b) => new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime())
   }, [activeActual, selectedCategory])
 
@@ -195,12 +204,15 @@ export const CriticalitySummaryWidget = (props: {
     if (!selectedCategory) return []
     const cat = normalizeCategory(selectedCategory)
     return activeProjected
-      .filter((t) => normalizeCategory((t as any).category) === cat)
+      .filter((t) => normalizeCategory(t.category) === cat)
       .map((t) => ({
-        id: (t as any).id,
-        date: (t as any).date ?? (t as any).transactionDate,
-        description: (t as any).description ?? (t as any).name,
-        amount: Number((t as any).amount) || 0,
+        id: t.id,
+        date:
+          (t as ProjectedTransaction).projectedDate ??
+          (t as ProjectedTransaction).projectedTransactionDate ??
+          (isLegacyTransaction(t) ? t.transactionDate : undefined), // fallback for legacy
+        description: t.description ?? t.name,
+        amount: Number(t.amount) || 0,
       }))
       .sort((a, b) => new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime())
   }, [activeProjected, selectedCategory])
@@ -243,4 +255,19 @@ export const CriticalitySummaryWidget = (props: {
       </Modal>
     </div>
   )
+}
+
+// Add type guard for legacy transaction
+function isLegacyTransaction(t: unknown): t is { date?: string; transactionDate?: string } {
+  return typeof t === 'object' && t !== null && ('date' in t || 'transactionDate' in t);
+}
+
+// Add type guard for legacy transaction with date
+function isLegacyTransactionWithDate(t: unknown): t is { date: string } {
+  return (
+    typeof t === 'object' &&
+    t !== null &&
+    'date' in t &&
+    typeof (t as { date?: unknown }).date === 'string'
+  );
 }

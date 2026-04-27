@@ -26,8 +26,8 @@ export const DashboardPage = () => {
   const sortedActualTransactions = useMemo(() => {
     const list = transactions?.transactions ?? []
     return [...list].sort((a, b) => {
-      const aDate = (a as any).date ?? a.transactionDate
-      const bDate = (b as any).date ?? b.transactionDate
+      const aDate = a.transactionDate
+      const bDate = b.transactionDate
       return new Date(bDate).getTime() - new Date(aDate).getTime()
     })
   }, [transactions])
@@ -35,10 +35,8 @@ export const DashboardPage = () => {
   const sortedProjectedTransactions = useMemo(() => {
     const list = projectedTransactions?.projectedTransactions ?? []
     return [...list].sort((a, b) => {
-      const aDate =
-        (a as any).projectedDate ?? (a as any).projectedTransactionDate ?? (a as any).transactionDate
-      const bDate =
-        (b as any).projectedDate ?? (b as any).projectedTransactionDate ?? (b as any).transactionDate
+      const aDate = a.projectedDate ?? a.projectedTransactionDate
+      const bDate = b.projectedDate ?? b.projectedTransactionDate
       return new Date(bDate).getTime() - new Date(aDate).getTime()
     })
   }, [projectedTransactions])

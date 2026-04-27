@@ -16,7 +16,7 @@ export const ProjectedTransactionList = ({ transactions }: ProjectedTransactionL
 
   return (
     <div className="tt-crit-txns-list">
-      {safeTransactions.map((transaction: any, idx: number) => {
+      {safeTransactions.map((transaction: ProjectedTransaction, idx: number) => {
         const title = transaction.description || transaction.name || 'Projected Transaction'
         const category = String(transaction.category ?? '').trim()
         const amountClass = transaction.amount < 0 ? 'tt-row-amount-neg' : 'tt-row-amount-pos'

@@ -22,10 +22,10 @@ export const TransactionList = ({ transactions }: TransactionListProps) => {
     <div className="tt-crit-txns-list">
       {transactions.map((transaction, idx) => {
         const title = transaction.description || transaction.name || 'Transaction'
-        const category = String((transaction as any).category ?? '').trim()
+        const category = String(transaction.category ?? '').trim()
         const amountClass = transaction.amount < 0 ? 'tt-row-amount-neg' : 'tt-row-amount-pos'
         const key = transaction.id ?? `actual-${idx}`
-        const dateValue = (transaction as any).date ?? transaction.transactionDate
+        const dateValue = transaction.transactionDate
 
         return (
           <div key={key} className="tt-row tt-crit-txn-row">
