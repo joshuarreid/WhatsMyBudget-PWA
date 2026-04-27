@@ -51,8 +51,8 @@ export const buildCriticalitySummary = (args: {
   actual: BudgetTransaction[]
   projected: ProjectedTransaction[]
 }): CriticalitySummary => {
-  const actualTotal = sum(args.actual.map((t) => coerceAmount((t as any).amount)))
-  const projectedTotal = sum(args.projected.map((t) => coerceAmount((t as any).amount)))
+  const actualTotal = sum(args.actual.map((t: BudgetTransaction) => coerceAmount(t.amount)))
+  const projectedTotal = sum(args.projected.map((t: ProjectedTransaction) => coerceAmount(t.amount)))
 
   return {
     actualCount: args.actual.length,

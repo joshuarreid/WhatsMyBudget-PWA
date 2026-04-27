@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useMemo, useState } from 'react';
 import { useCurrentStatementPeriod } from '@/features/statements';
 
 const MONTHS = [
@@ -55,12 +55,8 @@ const StatementPeriodContext = createContext<StatementPeriodContextType | undefi
 export const StatementPeriodProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { data: currentStatementPeriod, isPending, isError } = useCurrentStatementPeriod();
   const availablePeriods = useMemo(() => buildStatementPeriodWindow(currentStatementPeriod?.statementPeriod, 4), [currentStatementPeriod]);
-  const [selectedPeriod, setSelectedPeriod] = useState('');
-  useEffect(() => {
-    if (selectedPeriod) return;
-    if (availablePeriods.length === 0) return;
-    setSelectedPeriod(availablePeriods[4] ?? availablePeriods[availablePeriods.length - 1]);
-  }, [selectedPeriod, availablePeriods]);
+  const initialSelectedPeriod = availablePeriods[4] || availablePeriods[availablePeriods.length - 1] || '';
+  const [selectedPeriod, setSelectedPeriod] = useState(initialSelectedPeriod);
   return (
     <StatementPeriodContext.Provider value={{
       availablePeriods,

@@ -18,7 +18,10 @@ const appendFilters = (params: URLSearchParams, filters?: object) => {
 }
 
 const normalizeProjectedTransactionList = (data: unknown): ProjectedTransactionList => {
-  const anyData = data as any
+  const anyData = data as Partial<ProjectedTransactionList> & {
+    transactions?: ProjectedTransaction[]
+    account?: string
+  }
 
   if (anyData && Array.isArray(anyData.projectedTransactions)) {
     return anyData as ProjectedTransactionList
@@ -48,7 +51,11 @@ const normalizeAccountProjectedTransactionsResponse = (
   account: string,
   data: unknown
 ): AccountProjectedTransactionList => {
-  const anyData = data as any
+  const anyData = data as Partial<AccountProjectedTransactionList> & {
+    transactions?: ProjectedTransaction[]
+    personalTransactions?: { transactions?: ProjectedTransaction[] }
+    jointTransactions?: { transactions?: ProjectedTransaction[] }
+  }
 
   // Standard shape
   if (anyData && Array.isArray(anyData.projectedTransactions)) {
@@ -60,11 +67,11 @@ const normalizeAccountProjectedTransactionsResponse = (
     return {
       account,
       projectedTransactions: anyData.transactions as ProjectedTransaction[],
-      count: typeof anyData.count === 'number' ? anyData.count : (anyData.transactions as any[]).length,
+      count: typeof anyData.count === 'number' ? anyData.count : (anyData.transactions as ProjectedTransaction[]).length,
       total:
         typeof anyData.total === 'number'
           ? anyData.total
-          : (anyData.transactions as any[]).reduce((sum, t) => sum + (Number(t.amount) || 0), 0),
+          : (anyData.transactions as ProjectedTransaction[]).reduce((sum, t) => sum + (Number(t.amount) || 0), 0),
     }
   }
 
@@ -83,7 +90,7 @@ const normalizeAccountProjectedTransactionsResponse = (
     account,
     projectedTransactions,
     count: projectedTransactions.length,
-    total: projectedTransactions.reduce((sum, t) => sum + (Number((t as any).amount) || 0), 0),
+    total: projectedTransactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0),
   }
 }
 

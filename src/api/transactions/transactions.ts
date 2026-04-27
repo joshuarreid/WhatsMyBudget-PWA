@@ -20,11 +20,14 @@ const normalizeAccountTransactionsResponse = (
   account: string,
   data: unknown
 ): AccountBudgetTransactionList => {
-  const anyData = data as any
+  const normalizedData = data as Partial<AccountBudgetTransactionList> & {
+    personalTransactions?: { transactions?: BudgetTransaction[]; count?: number; total?: number }
+    jointTransactions?: { transactions?: BudgetTransaction[]; count?: number; total?: number }
+  }
 
   // Standard shape
-  if (anyData && Array.isArray(anyData.transactions)) {
-    return anyData as AccountBudgetTransactionList
+  if (normalizedData && Array.isArray(normalizedData.transactions)) {
+    return normalizedData as AccountBudgetTransactionList
   }
 
   // Aggregated shape: { personalTransactions, jointTransactions, ... }
@@ -36,24 +39,24 @@ const normalizeAccountTransactionsResponse = (
 
   // For personal accounts, merge both personal and joint transactions
   if (account === 'josh' || account === 'anna') {
-    const personal = anyData?.personalTransactions?.transactions ?? []
-    const joint = anyData?.jointTransactions?.transactions ?? []
+    const personal = normalizedData?.personalTransactions?.transactions ?? []
+    const joint = normalizedData?.jointTransactions?.transactions ?? []
     return {
       account,
       transactions: [...personal, ...joint],
-      count: (anyData?.personalTransactions?.count ?? 0) + (anyData?.jointTransactions?.count ?? 0),
-      total: (anyData?.personalTransactions?.total ?? 0) + (anyData?.jointTransactions?.total ?? 0),
+      count: (normalizedData?.personalTransactions?.count ?? personal.length) + (normalizedData?.jointTransactions?.count ?? joint.length),
+      total: (normalizedData?.personalTransactions?.total ?? 0) + (normalizedData?.jointTransactions?.total ?? 0),
     }
   }
 
   const bucketKey = mapKeyByAccount[account] ?? ''
-  const bucket = bucketKey ? anyData?.[bucketKey] : undefined
+  const bucket = bucketKey ? normalizedData?.[bucketKey] : undefined
 
   if (bucket && Array.isArray(bucket.transactions)) {
     return {
       account,
       transactions: bucket.transactions as BudgetTransaction[],
-      count: typeof bucket.count === 'number' ? bucket.count : (bucket.transactions as any[]).length,
+      count: typeof bucket.count === 'number' ? bucket.count : bucket.transactions.length,
       total: typeof bucket.total === 'number' ? bucket.total : 0,
     }
   }

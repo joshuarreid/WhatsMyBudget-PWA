@@ -44,15 +44,15 @@ const buildByCategory = (args: {
   const map = new Map<string, { actualTotal: number; projectedTotal: number }>()
 
   for (const t of args.actual) {
-    const category = String((t as any).category ?? 'Uncategorized').trim() || 'Uncategorized'
+    const category = String(t.category ?? 'Uncategorized').trim() || 'Uncategorized'
     const prev = map.get(category) ?? { actualTotal: 0, projectedTotal: 0 }
-    map.set(category, { ...prev, actualTotal: prev.actualTotal + coerceAmount((t as any).amount) })
+    map.set(category, { ...prev, actualTotal: prev.actualTotal + coerceAmount(t.amount) })
   }
 
   for (const t of args.projected) {
-    const category = String((t as any).category ?? 'Uncategorized').trim() || 'Uncategorized'
+    const category = String(t.category ?? 'Uncategorized').trim() || 'Uncategorized'
     const prev = map.get(category) ?? { actualTotal: 0, projectedTotal: 0 }
-    map.set(category, { ...prev, projectedTotal: prev.projectedTotal + coerceAmount((t as any).amount) })
+    map.set(category, { ...prev, projectedTotal: prev.projectedTotal + coerceAmount(t.amount) })
   }
 
   return Array.from(map.entries())
@@ -71,14 +71,16 @@ export const useCriticalitySummaries = (account?: string, statementPeriod?: stri
 
   // projected transactions (single call) and filter by criticality client-side
   const projectedQuery = useProjectedTransactions(account, statementPeriod ? { statementPeriod } : undefined)
-  const projectedList = (projectedQuery.data?.projectedTransactions ?? projectedQuery.data?.transactions ?? []) as any[]
+  const projectedList = useMemo(() => (
+    projectedQuery.data?.projectedTransactions ?? projectedQuery.data?.transactions ?? []
+  ), [projectedQuery.data]) as ProjectedTransaction[]
 
   const essentialProjected = useMemo(
-    () => projectedList.filter((t) => String((t as any).criticality ?? '').toLowerCase() === 'essential'),
+    () => projectedList.filter((t) => String(t.criticality ?? '').toLowerCase() === 'essential'),
     [projectedList]
   )
   const nonessentialProjected = useMemo(
-    () => projectedList.filter((t) => String((t as any).criticality ?? '').toLowerCase() === 'nonessential'),
+    () => projectedList.filter((t) => String(t.criticality ?? '').toLowerCase() === 'nonessential'),
     [projectedList]
   )
 
@@ -111,8 +113,8 @@ export const useCriticalitySummaries = (account?: string, statementPeriod?: stri
     const essentialActual = (essentialActualQuery.data ?? []) as BudgetTransaction[]
     const nonessentialActual = (nonessentialActualQuery.data ?? []) as BudgetTransaction[]
 
-    const essentialSummary = buildCriticalitySummary({ actual: essentialActual as any, projected: essentialProjected as any })
-    const nonessentialSummary = buildCriticalitySummary({ actual: nonessentialActual as any, projected: nonessentialProjected as any })
+    const essentialSummary = buildCriticalitySummary({ actual: essentialActual, projected: essentialProjected })
+    const nonessentialSummary = buildCriticalitySummary({ actual: nonessentialActual, projected: nonessentialProjected })
 
     return {
       summaries: {

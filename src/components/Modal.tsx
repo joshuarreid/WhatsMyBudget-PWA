@@ -1,6 +1,13 @@
 import { useEffect, type ReactNode } from 'react'
 
-export const Modal = (props: {
+export const Modal = ({
+  isOpen,
+  title,
+  onClose,
+  onBack,
+  backLabel,
+  children
+}: {
   isOpen: boolean
   title?: string
   onClose: () => void
@@ -9,49 +16,49 @@ export const Modal = (props: {
   children: ReactNode
 }) => {
   useEffect(() => {
-    if (!props.isOpen) return
+    if (!isOpen) return
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') props.onClose()
+      if (e.key === 'Escape') onClose()
     }
 
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [props.isOpen, props.onClose])
+  }, [isOpen, onClose])
 
-  if (!props.isOpen) return null
+  if (!isOpen) return null
 
   return (
-    <div className="tt-modal-overlay" role="presentation" onMouseDown={props.onClose}>
+    <div className="tt-modal-overlay" role="presentation" onMouseDown={onClose}>
       <div
         className="tt-modal"
         role="dialog"
         aria-modal="true"
-        aria-label={props.title ?? 'Dialog'}
+        aria-label={title ?? 'Dialog'}
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="tt-modal-header">
           <div className="tt-modal-left">
-            {props.onBack && (
+            {onBack && (
               <button
                 type="button"
                 className="tt-modal-back"
-                onClick={props.onBack}
-                aria-label={props.backLabel ?? 'Back'}
-                title={props.backLabel ?? 'Back'}
+                onClick={onBack}
+                aria-label={backLabel ?? 'Back'}
+                title={backLabel ?? 'Back'}
               >
                 ←
               </button>
             )}
           </div>
 
-          <div className="tt-modal-title">{props.title}</div>
+          <div className="tt-modal-title">{title}</div>
 
-          <button type="button" className="tt-modal-close" onClick={props.onClose} aria-label="Close">
+          <button type="button" className="tt-modal-close" onClick={onClose} aria-label="Close">
             ✕
           </button>
         </div>
-        <div className="tt-modal-body">{props.children}</div>
+        <div className="tt-modal-body">{children}</div>
       </div>
     </div>
   )
