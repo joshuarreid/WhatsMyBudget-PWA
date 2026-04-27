@@ -1,11 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { MainLayout } from '../layouts/MainLayout'
-import { useCurrentStatementPeriod } from '../features/statements/hooks/useCurrentStatementPeriod'
-import { useTransactions } from '../features/transactions/hooks/useTransactions'
-import { useCalculateWeeks } from '../features/transactions/hooks/useCalculateWeeks'
-import { useWeeklyAverage } from '../features/transactions/hooks/useWeeklyAverage'
+import { useCurrentStatementPeriod } from '@/features/statements';
+import { useTransactions, useCalculateWeeks, useWeeklyAverage, TransactionList } from '@/features/transactions';
 import './DashboardPage.css'
-import { TransactionList } from '../features/transactions/components/TransactionList'
 import { Modal } from '../components/Modal'
 import type { BudgetTransaction } from '../api/transactions/transactions.types'
 import { useProfileStore } from '../store/useProfileStore'

@@ -1,5 +1,5 @@
 import { useNavigate } from './router'
-import { LoginForm } from '../features/auth/components/LoginForm'
+import { LoginForm } from '@/features/auth'
 
 export const LoginPage = () => {
   const navigate = useNavigate()
@@ -14,4 +14,3 @@ export const LoginPage = () => {
     </div>
   )
 }
-
