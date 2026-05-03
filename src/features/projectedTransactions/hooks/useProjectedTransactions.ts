@@ -35,7 +35,7 @@ export const useCreateProjectedTransaction = () => {
   return useMutation({
     mutationFn: createProjectedTransaction,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: projectedTransactionsQueryKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: projectedTransactionsQueryKeys.all })
     },
   })
 }
@@ -58,7 +58,7 @@ export const useDeleteProjectedTransaction = () => {
   return useMutation({
     mutationFn: deleteProjectedTransaction,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: projectedTransactionsQueryKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: projectedTransactionsQueryKeys.all })
     },
   })
 }

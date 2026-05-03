@@ -1,6 +1,2 @@
 #!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
-
-# Run lint on pre-commit (replaced types check with lint)
 npm run lint
-
