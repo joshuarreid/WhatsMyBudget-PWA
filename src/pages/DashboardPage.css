@@ -915,6 +915,24 @@ html, body, #root, .main-layout, .dashboard-page-root {
   border-color: rgba(141, 176, 255, 0.55);
 }
 
+.tt-proj-money {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.tt-proj-money-prefix {
+  position: absolute;
+  left: 12px;
+  font-weight: 950;
+  color: var(--tt-color-muted);
+  pointer-events: none;
+}
+
+.tt-proj-money-input {
+  padding-left: 28px; /* make room for the $ */
+}
+
 .tt-proj-form-actions {
   display: flex;
   gap: 10px;
