@@ -811,10 +811,141 @@ html, body, #root, .main-layout, .dashboard-page-root {
   width: 150px; /* Reduced from 220px to bring rings closer together */
 }
 
-.tt-crit-title {
-  margin-bottom: 28px;
-  margin-top: 0;
-  font-size: 1.2rem;
-  font-weight: 600;
-  text-align: center;
+/* Projected transactions CRUD */
+.tt-proj-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 2px 2px 6px;
+}
+
+.tt-proj-add {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(141, 176, 255, 0.35);
+  background: rgba(141, 176, 255, 0.10);
+  color: var(--tt-color-text);
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.tt-proj-add:hover {
+  background: rgba(141, 176, 255, 0.16);
+}
+
+.tt-proj-row-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.tt-proj-action {
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--tt-color-text);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.tt-proj-action:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.tt-proj-action:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.tt-proj-action-danger {
+  border-color: rgba(255, 138, 138, 0.35);
+  background: rgba(255, 138, 138, 0.10);
+  color: rgba(255, 138, 138, 0.98);
+}
+
+.tt-proj-action-danger:hover {
+  background: rgba(255, 138, 138, 0.16);
+}
+
+.tt-proj-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tt-proj-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 520px) {
+  .tt-proj-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tt-proj-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tt-proj-label {
+  font-weight: 900;
+  color: var(--tt-color-muted);
+  font-size: 0.85rem;
+}
+
+.tt-proj-input {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 1rem;
+  border: var(--tt-input-border);
+  border-radius: 10px;
+  background: var(--tt-input-bg);
+  color: var(--tt-color-text);
+  outline: none;
+}
+
+.tt-proj-input:focus {
+  box-shadow: 0 0 0 4px rgba(141, 176, 255, 0.12);
+  border-color: rgba(141, 176, 255, 0.55);
+}
+
+.tt-proj-form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.tt-proj-primary,
+.tt-proj-secondary {
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-weight: 950;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--tt-color-text);
+}
+
+.tt-proj-primary {
+  border-color: rgba(141, 176, 255, 0.35);
+  background: rgba(141, 176, 255, 0.10);
+}
+
+.tt-proj-primary:hover {
+  background: rgba(141, 176, 255, 0.16);
+}
+
+.tt-proj-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.tt-proj-secondary:hover {
+  background: rgba(255, 255, 255, 0.06);
 }

@@ -1,46 +1,6 @@
 import React, { createContext, useContext, useMemo, useState } from 'react';
 import { useCurrentStatementPeriod } from '@/features/statements';
-
-const MONTHS = [
-  'JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER',
-] as const;
-
-type MonthName = (typeof MONTHS)[number];
-type ParsedStatementPeriod = { monthIndex: number; year: number };
-
-function parseStatementPeriod(period: string): ParsedStatementPeriod | null {
-  const match = /^([A-Z]+)(\d{4})$/.exec(period.trim().toUpperCase());
-  if (!match) return null;
-  const monthName = match[1] as MonthName;
-  const monthIndex = MONTHS.indexOf(monthName);
-  if (monthIndex === -1) return null;
-  const year = Number(match[2]);
-  if (!Number.isFinite(year)) return null;
-  return { monthIndex, year };
-}
-
-function formatStatementPeriod(monthIndex: number, year: number): string {
-  return `${MONTHS[monthIndex]}${year}`;
-}
-
-function addMonths(value: ParsedStatementPeriod, deltaMonths: number): ParsedStatementPeriod {
-  const total = value.year * 12 + value.monthIndex + deltaMonths;
-  const year = Math.floor(total / 12);
-  const monthIndex = ((total % 12) + 12) % 12;
-  return { year, monthIndex };
-}
-
-function buildStatementPeriodWindow(current: string | null | undefined, monthsBack: number = 4): string[] {
-  if (!current) return [];
-  const parsed = parseStatementPeriod(current);
-  if (!parsed) return [];
-  const periods: string[] = [];
-  for (let offset = -monthsBack; offset <= 0; offset++) {
-    const p = addMonths(parsed, offset);
-    periods.push(formatStatementPeriod(p.monthIndex, p.year));
-  }
-  return periods;
-}
+import { buildStatementPeriodWindow } from '../utils/statementPeriodWindow';
 
 export type StatementPeriodContextType = {
   availablePeriods: string[];
@@ -54,7 +14,10 @@ const StatementPeriodContext = createContext<StatementPeriodContextType | undefi
 
 export const StatementPeriodProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { data: currentStatementPeriod, isPending, isError } = useCurrentStatementPeriod();
-  const availablePeriods = useMemo(() => buildStatementPeriodWindow(currentStatementPeriod?.statementPeriod, 4), [currentStatementPeriod]);
+  const availablePeriods = useMemo(
+    () => buildStatementPeriodWindow(currentStatementPeriod?.statementPeriod, { monthsBack: 4, monthsForward: 0 }),
+    [currentStatementPeriod]
+  );
   const initialSelectedPeriod = availablePeriods[4] || availablePeriods[availablePeriods.length - 1] || '';
   const [selectedPeriod, setSelectedPeriod] = useState(initialSelectedPeriod);
   return (
