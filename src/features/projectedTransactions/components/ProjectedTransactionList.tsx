@@ -24,6 +24,45 @@ const formatDate = (value: string | undefined) => {
   return Number.isFinite(dt.getTime()) ? dt.toLocaleDateString() : value
 }
 
+const normalizeCurrencyInput = (raw: string) => {
+  // Keep digits, optional leading -, and a single dot. Strip currency symbols/spaces.
+  let s = raw.replace(/[^0-9.\-]/g, '')
+
+  // Allow '-' only at the beginning
+  s = s.replace(/(?!^)-/g, '')
+
+  // Only one decimal point
+  const firstDot = s.indexOf('.')
+  if (firstDot !== -1) {
+    s = s.slice(0, firstDot + 1) + s.slice(firstDot + 1).replace(/\./g, '')
+  }
+
+  // Limit to 2 decimal digits (while typing)
+  const parts = s.split('.')
+  if (parts.length === 2) {
+    parts[1] = parts[1].slice(0, 2)
+    s = `${parts[0]}.${parts[1]}`
+  }
+
+  return s
+}
+
+const formatCurrencyForInput = (value: string) => {
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+
+  const num = Number(trimmed)
+  if (!Number.isFinite(num)) return trimmed
+
+  // Keep it simple: no thousands separators (less cursor jumping on mobile), 2 decimals.
+  return num.toFixed(2)
+}
+
+const parseCurrencyAmount = (value: string) => {
+  const num = Number(value)
+  return Number.isFinite(num) ? num : NaN
+}
+
 type FormState = {
   id?: number
   name: string
@@ -100,7 +139,7 @@ export const ProjectedTransactionList = ({ transactions }: ProjectedTransactionL
     if (!form.statementPeriod.trim()) return false
     if (!form.projectedDate) return false
     if (!form.category.trim()) return false
-    if (!Number.isFinite(Number(form.amount))) return false
+    if (!Number.isFinite(parseCurrencyAmount(form.amount))) return false
     return true
   }, [busy, form])
 
@@ -158,19 +197,24 @@ export const ProjectedTransactionList = ({ transactions }: ProjectedTransactionL
   const closeModal = () => {
     if (busy) return
     setIsModalOpen(false)
-    setLastAutoDate('')
   }
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError(null)
 
+    // Normalize right before submit so API always gets a clean number string.
+    setForm((s) => ({ ...s, amount: formatCurrencyForInput(normalizeCurrencyInput(s.amount)) }))
+
     if (!canSubmit) {
       setFormError('Please fill out all required fields.')
       return
     }
 
-    const payload = toApiPayload(form)
+    const payload = toApiPayload({
+      ...form,
+      amount: formatCurrencyForInput(normalizeCurrencyInput(form.amount)),
+    })
 
     try {
       if (mode === 'create') {
@@ -302,14 +346,26 @@ export const ProjectedTransactionList = ({ transactions }: ProjectedTransactionL
 
             <label className="tt-proj-field">
               <span className="tt-proj-label">Amount *</span>
-              <input
-                className="tt-proj-input"
-                inputMode="decimal"
-                value={form.amount}
-                onChange={(e) => setForm((s) => ({ ...s, amount: e.target.value }))}
-                placeholder="e.g. -42.50"
-                required
-              />
+              <div className="tt-proj-money">
+                <span className="tt-proj-money-prefix">$</span>
+                <input
+                  className="tt-proj-input tt-proj-money-input"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  value={form.amount}
+                  onChange={(e) => {
+                    const next = normalizeCurrencyInput(e.target.value)
+                    setForm((s) => ({ ...s, amount: next }))
+                  }}
+                  onBlur={() => {
+                    setForm((s) => ({ ...s, amount: formatCurrencyForInput(s.amount) }))
+                  }}
+                  placeholder="0.00"
+                  required
+                />
+              </div>
             </label>
 
             <label className="tt-proj-field">
