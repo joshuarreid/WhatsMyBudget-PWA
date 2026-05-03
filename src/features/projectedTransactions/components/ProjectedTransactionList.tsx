@@ -143,20 +143,7 @@ export const ProjectedTransactionList = ({ transactions }: ProjectedTransactionL
     setIsModalOpen(true)
   }
 
-  const handleStatementPeriodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const period = e.target.value
-    const intended = period ? statementPeriodToLastDayInputDate(period) : ''
-    setForm((s) => {
-      // Only auto-set projectedDate if it was empty or previously auto-set
-      const shouldAuto = !s.projectedDate || s.projectedDate === lastAutoDate
-      return {
-        ...s,
-        statementPeriod: period,
-        projectedDate: shouldAuto ? intended : s.projectedDate,
-      }
-    })
-    setLastAutoDate(intended)
-  }
+
 
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const category = e.target.value
@@ -268,7 +255,8 @@ export const ProjectedTransactionList = ({ transactions }: ProjectedTransactionL
           {formError && <div className="tt-error">{formError}</div>}
 
           <div className="tt-proj-form-grid">
-            <label className="tt-proj-field">
+            {/* Account field is hidden but value is still managed in state and sent in payload */}
+            {/* <label className="tt-proj-field">
               <span className="tt-proj-label">Account *</span>
               <input
                 className="tt-proj-input"
@@ -277,54 +265,20 @@ export const ProjectedTransactionList = ({ transactions }: ProjectedTransactionL
                 placeholder="personal / joint"
                 required
               />
-            </label>
+            </label> */}
 
+            {/* Statement period is shown as read-only, not editable */}
             <label className="tt-proj-field">
-              <span className="tt-proj-label">Statement period *</span>
-              <select
+              <span className="tt-proj-label">Statement period</span>
+              <input
                 className="tt-proj-input"
                 value={form.statementPeriod}
-                onChange={handleStatementPeriodChange}
-                required
-              >
-                <option value="" disabled>
-                  Select a period…
-                </option>
-                {availablePeriods.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="tt-proj-field">
-              <span className="tt-proj-label">Projected date *</span>
-              <input
-                className="tt-proj-input"
-                type="date"
-                value={form.projectedDate}
-                onChange={(e) => {
-                  const v = e.target.value
-                  setForm((s) => ({ ...s, projectedDate: v }))
-                  setLastAutoDate('')
-                }}
-                required
+                disabled
+                readOnly
               />
             </label>
 
-            <label className="tt-proj-field">
-              <span className="tt-proj-label">Amount *</span>
-              <input
-                className="tt-proj-input"
-                inputMode="decimal"
-                value={form.amount}
-                onChange={(e) => setForm((s) => ({ ...s, amount: e.target.value }))}
-                placeholder="e.g. -42.50"
-                required
-              />
-            </label>
-
+            {/* Name field moved to top, right after statement period */}
             <label className="tt-proj-field">
               <span className="tt-proj-label">Name</span>
               <input
@@ -335,13 +289,26 @@ export const ProjectedTransactionList = ({ transactions }: ProjectedTransactionL
               />
             </label>
 
-            <label className="tt-proj-field">
+            {/* Description field is hidden but value is still managed in state and sent in payload */}
+            {/* <label className="tt-proj-field">
               <span className="tt-proj-label">Description</span>
               <input
                 className="tt-proj-input"
                 value={form.description}
                 onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
                 placeholder="Optional"
+              />
+            </label> */}
+
+            <label className="tt-proj-field">
+              <span className="tt-proj-label">Amount *</span>
+              <input
+                className="tt-proj-input"
+                inputMode="decimal"
+                value={form.amount}
+                onChange={(e) => setForm((s) => ({ ...s, amount: e.target.value }))}
+                placeholder="e.g. -42.50"
+                required
               />
             </label>
 
