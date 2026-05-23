@@ -1,5 +1,5 @@
-import { statementsApiClient } from './statementsApiClient'
-import type { StatementPeriod, DeleteAllResponse } from './statements.types'
+import { statementsApiClient } from './statementsApiClient.ts'
+import type { StatementPeriod, DeleteAllResponse } from './statements.types.ts'
 
 export const createStatementPeriod = async (data: StatementPeriod): Promise<StatementPeriod> => {
   const response = await statementsApiClient.post<StatementPeriod>(

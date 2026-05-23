@@ -4,7 +4,7 @@ import { useCurrentStatementPeriod } from '@/features/statements';
 import { useTransactions, useCalculateWeeks, useWeeklyAverage, TransactionList } from '@/features/transactions';
 import './DashboardPage.css'
 import { Modal } from '../components/Modal'
-import type { BudgetTransaction } from '../api/transactions/transactions.types'
+import type { BudgetTransaction } from '../features/transactions/api/transactions.types.ts'
 import { useProfileStore } from '../store/useProfileStore'
 import { useStatementPeriodStore } from '../store/useStatementPeriodStore'
 

@@ -5,7 +5,7 @@ import {
   useUpdateProjectedTransaction,
   useDeleteProjectedTransaction,
 } from '../hooks/useProjectedTransactions'
-import type { ProjectedTransaction } from '../../../api/projectedTransactions/projectedTransactions.types'
+import type { ProjectedTransaction } from '../api/projectedTransactions.types.ts'
 import { useStatementPeriodStore } from '@/store/useStatementPeriodStore'
 import { useProfileStore } from '@/store/useProfileStore'
 import { config } from '@/config/env'

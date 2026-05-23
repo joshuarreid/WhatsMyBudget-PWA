@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { session } from '../../../api/auth/session'
+import { session } from '../api/session.ts'
 
 export const useLogout = () => {
   return useCallback(() => {

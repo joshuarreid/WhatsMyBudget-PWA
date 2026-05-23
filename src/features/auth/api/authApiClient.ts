@@ -1,4 +1,4 @@
-import { ApiClient } from '../ApiClient'
+import { ApiClient } from '../../../api/ApiClient.ts'
 
 export class AuthApiClient extends ApiClient {
   constructor() {

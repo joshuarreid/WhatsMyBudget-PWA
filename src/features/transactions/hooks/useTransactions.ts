@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchAccountTransactions } from '../../../api/transactions/transactions'
-import { transactionsQueryKeys } from '../../../api/transactions/transactionsQueryKeys'
-import type { TransactionFilters } from '../../../api/transactions/transactions.types'
+import { fetchAccountTransactions } from '../api/transactions.ts'
+import { transactionsQueryKeys } from '../api/transactionsQueryKeys.ts'
+import type { TransactionFilters } from '../api/transactions.types.ts'
 
 export const useTransactions = (account?: string, filters?: Omit<TransactionFilters, 'account'>) => {
   const statementPeriod = filters?.statementPeriod

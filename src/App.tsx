@@ -4,10 +4,11 @@ import { Router, useCurrentRoute } from './pages/router'
 import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
 import { RequireAuth } from './features/auth/components/RequireAuth'
-import { session } from './api/auth/session'
+import { session } from './features/auth/api/session.ts'
 import { BottomNav } from './components/BottomNav'
 import { SpendingAveragesPage } from './pages/SpendingAveragesPage'
 import { ProfileSwitcher } from './components/ProfileSwitcher'
+import { ChatPage } from './pages/ChatPage'
 /*
 routes file
  */
@@ -21,7 +22,13 @@ const Routes = () => {
 
   return (
     <RequireAuth>
-      {route === '/spending-averages' ? <SpendingAveragesPage /> : <DashboardPage />}
+      {route === '/spending-averages' ? (
+        <SpendingAveragesPage />
+      ) : route === '/chat' ? (
+        <ChatPage />
+      ) : (
+        <DashboardPage />
+      )}
       <BottomNav />
     </RequireAuth>
   )

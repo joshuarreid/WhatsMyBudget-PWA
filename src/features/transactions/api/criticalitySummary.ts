@@ -1,10 +1,10 @@
-import { transactionsApiClient } from './transactionsApiClient'
-import type { ProjectedTransaction } from '../projectedTransactions/projectedTransactions.types'
-import type { BudgetTransaction } from './transactions.types'
+import { transactionsApiClient } from './transactionsApiClient.ts'
+import type { ProjectedTransaction } from '../../projectedTransactions/api/projectedTransactions.types.ts'
+import type { BudgetTransaction } from './transactions.types.ts'
 import type {
   CriticalitySummary,
   TransactionsAccountCriticalityResponse,
-} from './criticalitySummary.types'
+} from './criticalitySummary.types.ts'
 
 const sum = (values: number[]) => values.reduce((a, b) => a + b, 0)
 

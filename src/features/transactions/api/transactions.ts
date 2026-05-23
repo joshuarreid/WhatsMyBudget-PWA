@@ -1,10 +1,10 @@
-import { transactionsApiClient } from './transactionsApiClient'
+import { transactionsApiClient } from './transactionsApiClient.ts'
 import type {
   BudgetTransaction,
   BudgetTransactionList,
   AccountBudgetTransactionList,
   TransactionFilters,
-} from './transactions.types'
+} from './transactions.types.ts'
 
 const appendFilters = (params: URLSearchParams, filters?: object) => {
   if (!filters) return

@@ -1,11 +1,11 @@
-import { projectedTransactionsApiClient } from './projectedTransactionsApiClient'
+import { projectedTransactionsApiClient } from './projectedTransactionsApiClient.ts'
 import type {
   ProjectedTransaction,
   ProjectedTransactionList,
   AccountProjectedTransactionList,
   ProjectedTransactionFilters,
   DeleteAllResponse,
-} from './projectedTransactions.types'
+} from './projectedTransactions.types.ts'
 
 const appendFilters = (params: URLSearchParams, filters?: object) => {
   if (!filters) return

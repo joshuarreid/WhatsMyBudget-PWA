@@ -1,5 +1,5 @@
-import { conversationsApiClient } from './conversationsApiClient'
-import type { AskRagRequest, AskRagResponse, ConversationHistoryResponse } from './conversations.types'
+import { conversationsApiClient } from './conversationsApiClient.ts'
+import type { AskRagRequest, AskRagResponse, ConversationHistoryResponse } from './conversations.types.ts'
 
 const MAX_LIMIT = 200
 const DEFAULT_LIMIT = 50

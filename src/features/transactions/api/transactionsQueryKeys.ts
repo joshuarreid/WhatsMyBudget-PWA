@@ -1,4 +1,4 @@
-import type { TransactionFilters } from './transactions.types'
+import type { TransactionFilters } from './transactions.types.ts'
 
 export const transactionsQueryKeys = {
   all: ['transactions'] as const,

@@ -1,8 +1,8 @@
 import { useMemo, useState, type CSSProperties } from 'react'
 import { Modal } from '@/components/Modal'
-import type { CriticalitySummary } from '@/api/transactions/criticalitySummary.types'
-import type { BudgetTransaction } from '@/api/transactions/transactions.types'
-import type { ProjectedTransaction } from '@/api/projectedTransactions/projectedTransactions.types'
+import type { CriticalitySummary } from '@/features/transactions/api/criticalitySummary.types.ts'
+import type { BudgetTransaction } from '@/features/transactions/api/transactions.types.ts'
+import type { ProjectedTransaction } from '@/features/projectedTransactions/api/projectedTransactions.types.ts'
 
 const formatCurrency = (value: number) =>
   value.toLocaleString(undefined, { style: 'currency', currency: 'USD' })

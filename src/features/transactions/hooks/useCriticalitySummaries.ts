@@ -1,11 +1,11 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { criticalitySummaryQueryKeys } from '../../../api/transactions/criticalitySummaryQueryKeys'
-import { fetchAccountTransactionsByCriticality, buildCriticalitySummary } from '../../../api/transactions/criticalitySummary'
-import type { CriticalitySummary } from '../../../api/transactions/criticalitySummary.types'
+import { criticalitySummaryQueryKeys } from '../api/criticalitySummaryQueryKeys.ts'
+import { fetchAccountTransactionsByCriticality, buildCriticalitySummary } from '../api/criticalitySummary.ts'
+import type { CriticalitySummary } from '../api/criticalitySummary.types.ts'
 import { useProjectedTransactions } from '../../projectedTransactions/hooks/useProjectedTransactions'
-import type { BudgetTransaction } from '../../../api/transactions/transactions.types'
-import type { ProjectedTransaction } from '../../../api/projectedTransactions/projectedTransactions.types'
+import type { BudgetTransaction } from '../api/transactions.types.ts'
+import type { ProjectedTransaction } from '../../projectedTransactions/api/projectedTransactions.types.ts'
 
 export type CriticalitySummaries = {
   essential: CriticalitySummary

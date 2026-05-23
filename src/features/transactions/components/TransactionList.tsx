@@ -1,4 +1,4 @@
-import type { BudgetTransaction } from '../../../api/transactions/transactions.types'
+import type { BudgetTransaction } from '../api/transactions.types.ts'
 
 interface TransactionListProps {
   transactions: BudgetTransaction[]

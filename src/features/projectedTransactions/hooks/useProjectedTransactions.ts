@@ -4,12 +4,12 @@ import {
   createProjectedTransaction,
   updateProjectedTransaction,
   deleteProjectedTransaction,
-} from '../../../api/projectedTransactions/projectedTransactions'
-import { projectedTransactionsQueryKeys } from '../../../api/projectedTransactions/projectedTransactionsQueryKeys'
+} from '../api/projectedTransactions.ts'
+import { projectedTransactionsQueryKeys } from '../api/projectedTransactionsQueryKeys.ts'
 import type {
   ProjectedTransactionFilters,
   ProjectedTransaction,
-} from '../../../api/projectedTransactions/projectedTransactions.types'
+} from '../api/projectedTransactions.types.ts'
 
 export const useProjectedTransactions = (
   account?: string,

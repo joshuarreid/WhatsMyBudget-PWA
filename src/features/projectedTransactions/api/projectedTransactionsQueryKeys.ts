@@ -1,4 +1,4 @@
-import type { ProjectedTransactionFilters } from './projectedTransactions.types'
+import type { ProjectedTransactionFilters } from './projectedTransactions.types.ts'
 
 export const projectedTransactionsQueryKeys = {
   all: ['projectedTransactions'] as const,

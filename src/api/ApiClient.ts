@@ -1,8 +1,8 @@
 import axios from 'axios'
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { config } from '../config/env'
-import { tokenStorage } from './auth/tokenStorage'
-import { session } from './auth/session'
+import { tokenStorage } from '../features/auth/api/tokenStorage.ts'
+import { session } from '../features/auth/api/session.ts'
 
 export class ApiClient {
   private client: AxiosInstance

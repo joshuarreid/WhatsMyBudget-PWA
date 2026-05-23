@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { session } from '../api/auth/session'
+import { session } from '../features/auth/api/session.ts'
 import { useLogout } from '@/features/auth'
 import { useInitStatementPeriod } from '../store/useInitStatementPeriod'
 import { useStatementPeriodStore } from '../store/useStatementPeriodStore'

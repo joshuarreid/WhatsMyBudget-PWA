@@ -1,4 +1,4 @@
-import { ApiClient, apiClient } from '../ApiClient'
+import { ApiClient, apiClient } from '../../../api/ApiClient.ts'
 
 export class TransactionsApiClient extends ApiClient {
   private basePath = '/api/v2/transactions'

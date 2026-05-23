@@ -1,5 +1,5 @@
-import { tokenStorage } from './tokenStorage'
-import { navigate } from '../../pages/router'
+import { tokenStorage } from './tokenStorage.ts'
+import { navigate } from '../../../pages/router.tsx'
 
 export const session = {
   isAuthenticated(): boolean {
