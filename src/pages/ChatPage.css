@@ -62,17 +62,23 @@
   justify-content: flex-start;
 }
 
+/* Message bubbles */
 .chatBubble {
   padding: 10px 12px;
-  max-width: min(720px, 92%);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 18px;
+
+  /* Key: don't stretch; shrink to content, but cap at a readable max width */
+  display: inline-block;
+  width: fit-content;
+  max-width: min(640px, 86%);
 }
 
-/* Make the bubble corners more iMessage-like */
 .chatBubbleUser {
   background: rgba(37, 99, 235, 0.24);
   border-top-right-radius: 8px;
+  /* user bubbles look better a bit narrower on mobile */
+  max-width: min(520px, 78%);
 }
 
 .chatBubbleAssistant {
@@ -115,6 +121,7 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .chatFilterPill {
@@ -125,6 +132,58 @@
   color: rgba(230, 238, 248, 0.7);
   font-size: 13px;
   font-weight: 650;
+
+  /* ensure pills behave like pills on all sizes */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.06s;
+}
+
+.chatFilterPill:active {
+  transform: translateY(0.5px);
+}
+
+.chatFilterPill:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
+}
+
+.chatFilterPillActive {
+  border: 2px solid #3b82f6;
+  background: #23242a;
+  color: #3b82f6;
+  font-weight: 700;
+}
+
+/* Mobile-friendly filter layout */
+@media (max-width: 520px) {
+  .chatFiltersRow {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 8px;
+  }
+
+  .chatFilterPill {
+    width: auto;
+    border-radius: 999px;
+    padding: 8px 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
+    flex: 0 0 auto;
+  }
 }
 
 /* iMessage-style typing indicator */
@@ -135,6 +194,9 @@
   justify-content: flex-start;
   gap: 6px;
   padding: 12px 14px;
+
+  width: auto;
+  max-width: fit-content;
 }
 
 .chatTypingDot {

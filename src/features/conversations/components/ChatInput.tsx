@@ -5,6 +5,8 @@ import { useProfileStore } from '@/store/useProfileStore'
 export interface ChatInputFilters {
   period?: string
   payment_method?: string
+  /** Optional explicit account override (if omitted, falls back to active profile). */
+  account?: string
 }
 
 interface ChatInputProps {
@@ -33,8 +35,9 @@ export function ChatInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [value, setValue] = useState('')
 
-  // Always use the current active profile as the backend `account` field.
-  const account = useProfileStore((s) => s.profile)
+  // Default account = current active profile in the app.
+  const activeProfileAccount = useProfileStore((s) => s.profile)
+  const account = filters?.account ?? activeProfileAccount
 
   const askRag = useAskRag()
   const isSending = askRag.isPending

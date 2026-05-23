@@ -2,6 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { ChatInput } from './ChatInput'
 import { useConversationHistory } from '../hooks/useConversations'
+import { useProfileStore } from '@/store/useProfileStore'
+import type { Account } from '@/store/useProfileStore'
+import { useStatementPeriodStore } from '@/store/useStatementPeriodStore'
+import { Modal } from '@/components/Modal'
 
 type UiMessage = {
   id: string
@@ -23,11 +27,6 @@ const parseCreatedAt = (created_at?: string): Date | undefined => {
   if (!created_at) return undefined
   const d = new Date(created_at)
   return Number.isNaN(d.getTime()) ? undefined : d
-}
-
-const formatTime = (d?: Date) => {
-  if (!d) return ''
-  return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(d)
 }
 
 const formatDay = (d: Date) =>
@@ -139,8 +138,6 @@ export function ChatWindow() {
         }
       }
 
-      const ts = formatTime(m.createdAt)
-
       rows.push(
         <div
           key={m.id}
@@ -156,7 +153,6 @@ export function ChatWindow() {
             ) : (
               <div className="chatBubbleText">{m.content}</div>
             )}
-            {ts ? <div className="chatBubbleMeta">{ts}</div> : null}
           </div>
         </div>
       )
@@ -176,6 +172,43 @@ export function ChatWindow() {
 
     return rows
   }
+
+  const activeProfile = useProfileStore((s) => s.profile)
+  const availablePeriods = useStatementPeriodStore((s) => s.availablePeriods)
+  const storeSelectedPeriod = useStatementPeriodStore((s) => s.selectedPeriod)
+
+  // Filters the user picks *for this chat* (don’t necessarily track global switchers)
+  const [accountFilter, setAccountFilter] = useState<Account | ''>('')
+  const [periodFilter, setPeriodFilter] = useState<string>('')
+
+  const [picker, setPicker] = useState<null | 'account' | 'period'>(null)
+
+  // Default pills: Account shows placeholder; Period is blank until user selects.
+  // (We intentionally do NOT default to the global selected statement period.)
+
+  const accountLabel = useMemo(() => {
+    if (!accountFilter) return 'Account'
+    if (accountFilter === 'josh') return 'Josh'
+    if (accountFilter === 'joint') return 'Joint'
+    if (accountFilter === 'anna') return 'Anna'
+    return 'Account'
+  }, [accountFilter])
+
+  const periodLabel = useMemo(() => periodFilter || 'Period', [periodFilter])
+
+  const accountValueForApi: Account = (accountFilter || activeProfile) as Account
+  const periodValueForApi: string | undefined = periodFilter || undefined
+
+  const periodOptions = useMemo(() => {
+    const opts = availablePeriods?.length ? availablePeriods : storeSelectedPeriod ? [storeSelectedPeriod] : []
+    // Ensure the currently chosen period exists in the list so it can be re-selected
+    if (periodFilter && !opts.includes(periodFilter)) return [periodFilter, ...opts]
+    return opts
+  }, [availablePeriods, storeSelectedPeriod, periodFilter])
+
+  useEffect(() => {
+    console.log('[ChatWindow] filters', { accountFilter, periodFilter })
+  }, [accountFilter, periodFilter])
 
   return (
     <>
@@ -256,14 +289,118 @@ export function ChatWindow() {
               const seq = nextSeqRef.current++
               setLiveMessages((prev) => prev.concat({ id: safeId(), role: 'assistant', content, createdAt, seq }))
             }}
+            filters={{
+              account: accountValueForApi,
+              period: periodValueForApi,
+            }}
             filtersSlot={
-              <div className="chatFiltersRow">
-                <div className="chatFilterPill">Filters coming soon</div>
+              <div className="chatFiltersRow" style={{ justifyContent: 'flex-start' }}>
+                <button
+                  type="button"
+                  className={`chatFilterPill ${accountFilter ? 'chatFilterPillActive' : ''}`}
+                  onClick={() => setPicker('account')}
+                >
+                  {accountLabel}
+                </button>
+
+                <button
+                  type="button"
+                  className={`chatFilterPill ${periodValueForApi ? 'chatFilterPillActive' : ''}`}
+                  onClick={() => setPicker('period')}
+                  style={{ maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                >
+                  {periodLabel}
+                </button>
               </div>
             }
           />
         </div>
       </div>
+
+      <Modal
+        isOpen={picker === 'account'}
+        title="Choose account"
+        onClose={() => setPicker(null)}
+      >
+        <div style={{ display: 'grid', gap: 10 }}>
+          {[{ v: '', label: 'Use profile default' }, { v: 'josh', label: 'Josh' }, { v: 'joint', label: 'Joint' }, { v: 'anna', label: 'Anna' }].map(
+            (o) => (
+              <button
+                key={o.v || 'default'}
+                type="button"
+                className="tt-btn"
+                onClick={() => {
+                  setAccountFilter(o.v as Account | '')
+                  setPicker(null)
+                }}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: 14,
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  background: 'rgba(255,255,255,0.04)',
+                  color: '#e6eef8',
+                  fontWeight: 800,
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                }}
+              >
+                {o.label}
+              </button>
+            )
+          )}
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={picker === 'period'}
+        title="Choose statement period"
+        onClose={() => setPicker(null)}
+      >
+        <div style={{ display: 'grid', gap: 10 }}>
+          <button
+            type="button"
+            onClick={() => {
+              setPeriodFilter('')
+              setPicker(null)
+            }}
+            style={{
+              padding: '12px 14px',
+              borderRadius: 14,
+              border: '1px solid rgba(255,255,255,0.12)',
+              background: !periodFilter ? 'rgba(37,99,235,0.20)' : 'rgba(255,255,255,0.04)',
+              color: '#e6eef8',
+              fontWeight: 800,
+              textAlign: 'left',
+              cursor: 'pointer',
+            }}
+          >
+            Any period
+          </button>
+
+          {periodOptions.map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => {
+                setPeriodFilter(p)
+                setPicker(null)
+              }}
+              style={{
+                padding: '12px 14px',
+                borderRadius: 14,
+                border: '1px solid rgba(255,255,255,0.12)',
+                background: p === periodFilter ? 'rgba(37,99,235,0.20)' : 'rgba(255,255,255,0.04)',
+                color: '#e6eef8',
+                fontWeight: 800,
+                textAlign: 'left',
+                cursor: 'pointer',
+              }}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+      </Modal>
     </>
   )
 }
