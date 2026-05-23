@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { ChatInput } from './ChatInput'
 import { useConversationHistory } from '../hooks/useConversations'
 
@@ -6,7 +7,8 @@ type UiMessage = {
   id: string
   role: 'user' | 'assistant'
   content: string
-  createdAt: Date
+  createdAt?: Date
+  seq: number
 }
 
 const safeId = () => {
@@ -17,14 +19,16 @@ const safeId = () => {
   }
 }
 
-const parseCreatedAt = (created_at?: string): Date => {
-  if (!created_at) return new Date()
+const parseCreatedAt = (created_at?: string): Date | undefined => {
+  if (!created_at) return undefined
   const d = new Date(created_at)
-  return Number.isNaN(d.getTime()) ? new Date() : d
+  return Number.isNaN(d.getTime()) ? undefined : d
 }
 
-const formatTime = (d: Date) =>
-  new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(d)
+const formatTime = (d?: Date) => {
+  if (!d) return ''
+  return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(d)
+}
 
 const formatDay = (d: Date) =>
   new Intl.DateTimeFormat(undefined, {
@@ -36,6 +40,11 @@ const formatDay = (d: Date) =>
 
 const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
 
+const compareUiMessages = (a: UiMessage, b: UiMessage) => {
+  const t = a.seq - b.seq
+  return t !== 0 ? t : a.id.localeCompare(b.id)
+}
+
 /**
  * ChatWindow owns the chat state for the current conversation.
  * - Keeps the current conversation's message history in memory.
@@ -46,6 +55,8 @@ export function ChatWindow() {
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [liveMessages, setLiveMessages] = useState<UiMessage[]>([])
   const [lastEvent, setLastEvent] = useState<string>('')
+  const [assistantIsTyping, setAssistantIsTyping] = useState(false)
+  const nextSeqRef = useRef(1)
 
   const historyQuery = useConversationHistory(conversationId ?? undefined)
   const transcriptRef = useRef<HTMLDivElement | null>(null)
@@ -56,26 +67,35 @@ export function ChatWindow() {
 
   const historyMessages = useMemo<UiMessage[]>(() => {
     if (!historyQuery.data) return []
-    return historyQuery.data.messages.map((m) => ({
+
+    // Keep mapping pure; sequence is based on the API order.
+    return historyQuery.data.messages.map((m, idx) => ({
       id: m.message_id ?? safeId(),
       role: m.role,
       content: m.content,
       createdAt: parseCreatedAt(m.created_at),
+      seq: idx + 1,
     }))
   }, [historyQuery.data])
 
+  // When history loads/changes, ensure new live messages append after it.
+  useEffect(() => {
+    if (!conversationId) return
+    nextSeqRef.current = historyMessages.length + 1
+  }, [conversationId, historyMessages.length])
+
   // Merge fetched history with optimistic live messages for the current conversation.
   const messages = useMemo(() => {
-    // For a brand-new conversation (no id yet), just show live messages.
-    if (!conversationId) return liveMessages
+    // No conversation yet => only show what we've appended locally
+    if (!conversationId) return [...liveMessages].sort(compareUiMessages)
 
-    // For an existing conversation, prefer server history + any new live messages.
-    // De-dupe by id just in case the server echoes a message we already rendered.
+    // Conversation exists: show history first, then any new live messages.
+    // Avoid time-based sorting to prevent reordering from missing/odd timestamps.
     const byId = new Map<string, UiMessage>()
     for (const m of historyMessages) byId.set(m.id, m)
     for (const m of liveMessages) byId.set(m.id, m)
 
-    return Array.from(byId.values()).sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+    return Array.from(byId.values()).sort(compareUiMessages)
   }, [conversationId, historyMessages, liveMessages])
 
   useEffect(() => {
@@ -107,15 +127,19 @@ export function ChatWindow() {
     let lastDay: string | null = null
 
     for (const m of messages) {
-      const key = dayKey(m.createdAt)
-      if (key !== lastDay) {
-        lastDay = key
-        rows.push(
-          <div key={`day-${key}`} className="chatDaySeparatorRow">
-            <div className="chatDaySeparator">{formatDay(m.createdAt)}</div>
-          </div>
-        )
+      if (m.createdAt) {
+        const key = dayKey(m.createdAt)
+        if (key !== lastDay) {
+          lastDay = key
+          rows.push(
+            <div key={`day-${key}`} className="chatDaySeparatorRow">
+              <div className="chatDaySeparator">{formatDay(m.createdAt)}</div>
+            </div>
+          )
+        }
       }
+
+      const ts = formatTime(m.createdAt)
 
       rows.push(
         <div
@@ -125,8 +149,26 @@ export function ChatWindow() {
           <div
             className={`tt-card chatBubble ${m.role === 'user' ? 'chatBubbleUser' : 'chatBubbleAssistant'}`}
           >
-            <div className="chatBubbleText">{m.content}</div>
-            <div className="chatBubbleMeta">{formatTime(m.createdAt)}</div>
+            {m.role === 'assistant' ? (
+              <div className="chatBubbleText chatMarkdown">
+                <ReactMarkdown>{m.content}</ReactMarkdown>
+              </div>
+            ) : (
+              <div className="chatBubbleText">{m.content}</div>
+            )}
+            {ts ? <div className="chatBubbleMeta">{ts}</div> : null}
+          </div>
+        </div>
+      )
+    }
+
+    if (assistantIsTyping) {
+      rows.push(
+        <div key="typing" className="chatMessageRow chatMessageRowAssistant">
+          <div className="tt-card chatBubble chatBubbleAssistant chatTypingBubble" aria-label="Assistant is typing">
+            <span className="chatTypingDot" />
+            <span className="chatTypingDot" />
+            <span className="chatTypingDot" />
           </div>
         </div>
       )
@@ -188,13 +230,14 @@ export function ChatWindow() {
         <div className="chatFixedFooterInner">
           <ChatInput
             conversationId={conversationId}
+            onSendingChange={(sending) => setAssistantIsTyping(sending)}
             onConversationId={(id) => {
               console.log('[ChatWindow] setConversationId()', { id })
               setLastEvent('setConversationId')
               setConversationId((prev) => {
-                // If we're switching to a new conversation id, drop optimistic messages.
                 if (prev !== id) {
                   setLiveMessages([])
+                  nextSeqRef.current = 1
                 }
                 return id
               })
@@ -202,16 +245,16 @@ export function ChatWindow() {
             onUserMessage={(content: string) => {
               console.log('[ChatWindow] onUserMessage()', { contentLen: content.length, content })
               setLastEvent('append(user)')
-              setLiveMessages((prev) =>
-                prev.concat({ id: safeId(), role: 'user', content, createdAt: new Date() })
-              )
+              const createdAt = new Date()
+              const seq = nextSeqRef.current++
+              setLiveMessages((prev) => prev.concat({ id: safeId(), role: 'user', content, createdAt, seq }))
             }}
             onAssistantMessage={(content: string) => {
               console.log('[ChatWindow] onAssistantMessage()', { contentLen: content.length, content })
               setLastEvent('append(assistant)')
-              setLiveMessages((prev) =>
-                prev.concat({ id: safeId(), role: 'assistant', content, createdAt: new Date() })
-              )
+              const createdAt = new Date()
+              const seq = nextSeqRef.current++
+              setLiveMessages((prev) => prev.concat({ id: safeId(), role: 'assistant', content, createdAt, seq }))
             }}
             filtersSlot={
               <div className="chatFiltersRow">

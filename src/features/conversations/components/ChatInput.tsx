@@ -12,6 +12,7 @@ interface ChatInputProps {
   onConversationId: (conversationId: string) => void
   onUserMessage: (content: string) => void
   onAssistantMessage: (content: string) => void
+  onSendingChange?: (isSending: boolean) => void
   filters?: ChatInputFilters
   filtersSlot?: React.ReactNode
   disabled?: boolean
@@ -24,6 +25,7 @@ export function ChatInput({
   onConversationId,
   onUserMessage,
   onAssistantMessage,
+  onSendingChange,
   filters,
   filtersSlot,
   disabled,
@@ -36,6 +38,10 @@ export function ChatInput({
 
   const askRag = useAskRag()
   const isSending = askRag.isPending
+
+  useEffect(() => {
+    onSendingChange?.(isSending)
+  }, [isSending, onSendingChange])
 
   const canSend = useMemo(() => {
     if (disabled) return false
