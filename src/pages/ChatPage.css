@@ -1,0 +1,93 @@
+.chatPage {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 12px;
+  /* Fill available viewport, accounting for sticky header/dropdown + main padding. */
+  min-height: calc(100vh - 44px - 44px - 2rem);
+}
+
+.chatPageTitle {
+  font-weight: 950;
+  letter-spacing: 0.02em;
+  color: #e6eef8;
+  font-size: 1.25rem;
+}
+
+.chatTranscript {
+  overflow-y: auto;
+  display: grid;
+  gap: 10px;
+}
+
+.chatEmptyCard {
+  padding: 14px;
+}
+
+.chatEmptyText {
+  color: rgba(230, 238, 248, 0.78);
+  line-height: 1.35;
+}
+
+.chatMessageRow {
+  display: flex;
+}
+
+.chatMessageRowUser {
+  justify-content: flex-end;
+}
+
+.chatMessageRowAssistant {
+  justify-content: flex-start;
+}
+
+.chatBubble {
+  padding: 12px;
+  max-width: min(680px, 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.chatBubbleUser {
+  background: rgba(37, 99, 235, 0.2);
+}
+
+.chatBubbleAssistant {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.chatBubbleText {
+  color: #e6eef8;
+  white-space: pre-wrap;
+  line-height: 1.35;
+}
+
+.chatFixedFooter {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  padding: 0 1rem;
+  pointer-events: none;
+}
+
+.chatFixedFooterInner {
+  max-width: 1200px;
+  margin: 0 auto;
+  pointer-events: auto;
+}
+
+.chatFiltersRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chatFilterPill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(230, 238, 248, 0.7);
+  font-size: 13px;
+  font-weight: 650;
+}
+
