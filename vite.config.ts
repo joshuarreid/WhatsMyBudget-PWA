@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -47,6 +48,14 @@ export default defineConfig({
     host: 'localhost',
     port: 3000,
     strictPort: true,
+    proxy: {
+      '/api': {
+        target: process.env.VITE_API_BASE_URL ?? 'http://localhost:8080',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    },
   },
   preview: {
     // Use env vars so we don't hardcode deployment URLs in source.

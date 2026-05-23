@@ -23,12 +23,12 @@
     --tt-crit-yellow: #f5c542;
 }
 
+/* Make tt-card a reusable, flexible card. */
 .tt-card {
     box-sizing: border-box;
     width: 100%;
     border-radius: 12px;
     padding: 12px;
-    min-height: 900px;
     margin: 12px 0;
     font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
     color: var(--tt-color-text);
@@ -37,6 +37,11 @@
     gap: 12px;
     border: var(--tt-card-border);
     background: var(--tt-bg-gradient);
+}
+
+/* Dashboard page layout expects a tall main card; keep that behavior scoped to the dashboard page. */
+.dashboard-page-root .tt-card {
+    min-height: 900px;
 }
 
 .tt-controls {

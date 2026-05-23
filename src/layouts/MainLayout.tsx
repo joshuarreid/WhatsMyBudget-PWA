@@ -7,6 +7,8 @@ import { StatementPeriodDropdown } from '../components/StatementPeriodDropdown'
 
 interface MainLayoutProps {
   children: ReactNode
+  /** Hide the sticky statement period chooser under the header (useful for Chat, etc.). */
+  hideStatementPeriodChooser?: boolean
 }
 
 const Header = ({ authed, logout }: { authed: boolean, logout: () => void }) => (
@@ -80,7 +82,7 @@ const StickyDropdown = () => {
   );
 }
 
-export const MainLayout = ({ children }: MainLayoutProps) => {
+export const MainLayout = ({ children, hideStatementPeriodChooser }: MainLayoutProps) => {
   useInitStatementPeriod()
   const logout = useLogout()
   const authed = session.isAuthenticated()
@@ -92,7 +94,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
       }}
     >
       <Header authed={authed} logout={logout} />
-      <StickyDropdown />
+      {!hideStatementPeriodChooser ? <StickyDropdown /> : null}
       <main
         style={{
           padding: '1rem',

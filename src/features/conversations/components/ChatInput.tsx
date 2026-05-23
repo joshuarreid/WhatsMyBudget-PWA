@@ -47,15 +47,29 @@ export function ChatInput({
   useEffect(() => {
     const el = textareaRef.current
     if (!el) return
+
     el.style.height = '0px'
-    el.style.height = `${Math.min(el.scrollHeight, 140)}px`
+    const next = Math.min(el.scrollHeight, 140)
+    el.style.height = `${next}px`
+
+    // Prevent the small right-side scrollbar in the pill.
+    // Only allow scrolling if the content exceeds our max height.
+    el.style.overflowY = el.scrollHeight > 140 ? 'auto' : 'hidden'
   }, [value])
 
   const send = async () => {
     const question = value.trim()
     if (!question) return
 
+    console.log('[ChatInput] send()', {
+      conversationId,
+      question,
+      account,
+      filters,
+    })
+
     setValue('')
+    console.log('[ChatInput] onUserMessage()', { question })
     onUserMessage(question)
 
     try {
@@ -69,12 +83,17 @@ export function ChatInput({
         },
       })
 
+      console.log('[ChatInput] askRag response', response)
+
       if (!conversationId && response.conversation_id) {
+        console.log('[ChatInput] onConversationId()', { conversation_id: response.conversation_id })
         onConversationId(response.conversation_id)
       }
 
+      console.log('[ChatInput] onAssistantMessage()', { answerLen: response.answer?.length })
       onAssistantMessage(response.answer)
-    } catch {
+    } catch (err) {
+      console.error('[ChatInput] askRag error', err)
       onAssistantMessage('Sorry — something went wrong sending that. Please try again.')
     } finally {
       textareaRef.current?.focus()
@@ -117,6 +136,7 @@ export function ChatInput({
           style={{
             width: '100%',
             resize: 'none',
+            overflowY: 'hidden',
             borderRadius: 12,
             border: '1px solid rgba(255,255,255,0.12)',
             background: 'rgba(255,255,255,0.03)',
@@ -160,4 +180,3 @@ export function ChatInput({
     </div>
   )
 }
-

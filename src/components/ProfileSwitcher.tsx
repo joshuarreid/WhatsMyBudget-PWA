@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useProfileStore } from '../store/useProfileStore'
 import type { Account } from '../store/useProfileStore'
+import { useCurrentRoute } from '../pages/router'
 
 const PRIMARY = '#2563eb'; // Project blue
 const PRIMARY_LIGHT = '#3b82f6'; // Lighter blue for hover
@@ -22,15 +23,22 @@ const PROFILE_LABELS: Record<Account, string> = {
 const ACCOUNTS: Account[] = ['josh', 'joint', 'anna']
 
 export function ProfileSwitcher() {
+  const route = useCurrentRoute()
+
   const selectedAccount = useProfileStore((state) => state.profile)
   const setSelectedAccount = useProfileStore((state) => state.setProfile)
   const [open, setOpen] = useState(false)
   const [hovered, setHovered] = useState<string | null>(null)
   const ref = useRef<HTMLDivElement>(null)
 
+  const hidden = route === '/chat' || route === '/login'
+
+  // Clamp open state when hidden so we don't render an open menu if the route changes back.
+  const isOpen = open && !hidden
+
   // Close menu on outside click
   useEffect(() => {
-    if (!open) return;
+    if (!isOpen) return
     function handleClick(event: MouseEvent | TouchEvent) {
       if (ref.current && !ref.current.contains(event.target as Node)) {
         setOpen(false)
@@ -42,10 +50,12 @@ export function ProfileSwitcher() {
       document.removeEventListener('mousedown', handleClick)
       document.removeEventListener('touchstart', handleClick)
     }
-  }, [open])
+  }, [isOpen])
 
   // Only show the other profiles (not the selected one) as options
   const otherAccounts = ACCOUNTS.filter((acct) => acct !== selectedAccount)
+
+  if (hidden) return null
 
   return (
     <div
@@ -64,7 +74,7 @@ export function ProfileSwitcher() {
       <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', pointerEvents: 'auto' }}>
         {/* Animated profile options */}
         <AnimatePresence>
-          {open && otherAccounts.map((acct, idx) => (
+          {isOpen && otherAccounts.map((acct, idx) => (
             <motion.button
               key={acct}
               initial={{ opacity: 0, y: 20 }}
@@ -98,48 +108,43 @@ export function ProfileSwitcher() {
                   ? `0 2px 8px 0 rgba(37,99,235,0.18)`
                   : '0 2px 8px 0 rgba(37,99,235,0.10)',
                 marginBottom: 0,
-                pointerEvents: open ? 'auto' : 'none',
+                pointerEvents: isOpen ? 'auto' : 'none',
                 transition: 'background 0.18s, border 0.18s, color 0.18s, box-shadow 0.18s',
               }}
               aria-label={`Switch to ${PROFILE_LABELS[acct]}`}
-              tabIndex={open ? 0 : -1}
+              tabIndex={isOpen ? 0 : -1}
               onFocus={e => e.currentTarget.style.boxShadow = `0 0 0 3px ${PRIMARY_LIGHT}`}
               onBlur={e => e.currentTarget.style.boxShadow = hovered === acct
                 ? `0 2px 8px 0 rgba(37,99,235,0.18)`
-                : '0 2px 8px 0 rgba(37,99,235,0.10)'}
+                : '0 2px 8px 0 rgba(37,99,235,0.10)'
+              }
             >
               {PROFILE_LABELS[acct]}
             </motion.button>
           ))}
         </AnimatePresence>
-        {/* Main profile button */}
+
+        {/* Main button */}
         <button
+          type="button"
           onClick={() => setOpen((v) => !v)}
-          aria-label={open ? 'Close profile switcher' : `Current profile: ${PROFILE_LABELS[selectedAccount]}`}
           style={{
             width: 54,
             height: 54,
             borderRadius: '50%',
-            border: `3px solid ${SELECTED_BORDER}`,
-            background: SELECTED_BG,
-            color: SELECTED_TEXT,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 700,
+            border: `2px solid ${open ? PRIMARY : SELECTED_BORDER}`,
+            background: open ? PRIMARY_LIGHT : SELECTED_BG,
+            color: open ? WHITE : SELECTED_TEXT,
+            fontWeight: 800,
             fontSize: 16,
             cursor: 'pointer',
             outline: 'none',
-            boxShadow: `0 2px 8px 0 rgba(37,99,235,0.10)`,
-            margin: '0 auto',
-            position: 'relative',
-            zIndex: 2,
-            transition: 'background 0.18s, border 0.18s, box-shadow 0.18s',
+            boxShadow: open
+              ? `0 2px 12px 0 rgba(37,99,235,0.22)`
+              : '0 2px 10px 0 rgba(0,0,0,0.14)',
+            transition: 'background 0.18s, border 0.18s, color 0.18s, box-shadow 0.18s',
           }}
-          onMouseEnter={e => e.currentTarget.style.background = NEUTRAL_BG}
-          onMouseLeave={e => e.currentTarget.style.background = SELECTED_BG}
-          onFocus={e => e.currentTarget.style.boxShadow = `0 0 0 3px ${PRIMARY_LIGHT}`}
-          onBlur={e => e.currentTarget.style.boxShadow = `0 2px 8px 0 rgba(37,99,235,0.10)`}
+          aria-label="Switch profile"
         >
           {PROFILE_LABELS[selectedAccount]}
         </button>
