@@ -1058,8 +1058,19 @@ html, body, #root, .main-layout, .dashboard-page-root {
 }
 
 .tt-nested-row-child .tt-nested-title-cell {
+  position: relative;
   padding-left: 22px;
   color: var(--tt-color-accent);
+}
+
+.tt-nested-row-child .tt-nested-title-cell::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: -1px;
+  bottom: -1px;
+  width: 1px;
+  background: rgba(141, 176, 255, 0.72);
 }
 
 .tt-nested-total-cell {
