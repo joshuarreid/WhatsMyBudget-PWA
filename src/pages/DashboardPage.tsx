@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { MainLayout } from '../layouts/MainLayout'
-import { useTransactions, useCriticalitySummaries, CriticalityBreakdownTreeWidget, DualRingStat, TransactionList } from '@/features/transactions'
+import { useTransactions, useCriticalitySummaries, CriticalityBreakdownTreeWidget, DualRingStat, NestedCategoryTableSkeleton, TransactionList } from '@/features/transactions'
 import { useProjectedTransactions, ProjectedTransactionList } from '@/features/projectedTransactions'
 import { useProfileStore } from '../store/useProfileStore'
 import { useStatementPeriodStore } from '../store/useStatementPeriodStore'
@@ -52,10 +52,13 @@ export const DashboardPage = () => {
                 <p className="tt-error">Failed to load criticality summary.</p>
               )}
               {criticalityDetails && (
-                <DualRingStat
-                  essential={criticalityDetails.summaries.essential}
-                  nonessential={criticalityDetails.summaries.nonessential}
-                />
+                <>
+                  <DualRingStat
+                    essential={criticalityDetails.summaries.essential}
+                    nonessential={criticalityDetails.summaries.nonessential}
+                  />
+                  <NestedCategoryTableSkeleton />
+                </>
               )}
             </div>
           )}
