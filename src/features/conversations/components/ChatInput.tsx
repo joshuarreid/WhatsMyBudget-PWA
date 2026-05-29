@@ -4,6 +4,10 @@ import { useProfileStore } from '@/store/useProfileStore'
 
 export interface ChatInputFilters {
   period?: string
+  periodRange?: {
+    start: string
+    end: string
+  }
   payment_method?: string
   /** Optional explicit account override (if omitted, falls back to active profile). */
   account?: string
@@ -87,10 +91,13 @@ export function ChatInput({
   const send = async () => {
     const question = value.trim()
     if (!question) return
+    const requestQuestion = filters?.periodRange
+      ? `For statement periods ${filters.periodRange.start} through ${filters.periodRange.end}, ${question}`
+      : question
 
     console.log('[ChatInput] send()', {
       conversationId,
-      question,
+      question: requestQuestion,
       account,
       filters,
     })
@@ -102,7 +109,7 @@ export function ChatInput({
     try {
       const response = await askRag.mutateAsync({
         request: {
-          question,
+          question: requestQuestion,
           conversation_id: conversationId ?? undefined,
           account,
           period: filters?.period,

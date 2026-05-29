@@ -17,6 +17,8 @@ export const Modal = ({
   headerActions?: ReactNode
   children: ReactNode
 }) => {
+  const titleId = title ? `modal-title-${title.replace(/\s+/g, '-').toLowerCase()}` : undefined
+
   useEffect(() => {
     if (!isOpen) return
 
@@ -36,7 +38,8 @@ export const Modal = ({
         className="tt-modal"
         role="dialog"
         aria-modal="true"
-        aria-label={title ?? 'Dialog'}
+        aria-label={title ? undefined : 'Dialog'}
+        aria-labelledby={titleId}
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="tt-modal-header">
@@ -54,7 +57,7 @@ export const Modal = ({
             )}
           </div>
 
-          <div className="tt-modal-title">{title}</div>
+          <div id={titleId} className="tt-modal-title">{title}</div>
 
           <div className="tt-modal-right">
             {headerActions}

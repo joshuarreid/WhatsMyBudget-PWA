@@ -6,6 +6,7 @@ import { useProfileStore } from '@/store/useProfileStore'
 import type { Account } from '@/store/useProfileStore'
 import { useStatementPeriodStore } from '@/store/useStatementPeriodStore'
 import { Modal } from '@/components/Modal'
+import { parseStatementPeriod } from '@/utils/statementPeriodWindow'
 
 type UiMessage = {
   id: string
@@ -14,6 +15,8 @@ type UiMessage = {
   createdAt?: Date
   seq: number
 }
+
+type PeriodFilterMode = 'single' | 'range'
 
 const safeId = () => {
   try {
@@ -42,6 +45,33 @@ const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
 const compareUiMessages = (a: UiMessage, b: UiMessage) => {
   const t = a.seq - b.seq
   return t !== 0 ? t : a.id.localeCompare(b.id)
+}
+
+const pickerOptionBaseStyle: React.CSSProperties = {
+  padding: '12px 14px',
+  borderRadius: 14,
+  border: '1px solid rgba(255,255,255,0.12)',
+  background: 'rgba(255,255,255,0.04)',
+  color: '#e6eef8',
+  fontWeight: 800,
+  textAlign: 'left',
+  cursor: 'pointer',
+}
+
+const pickerOptionActiveStyle: React.CSSProperties = {
+  background: 'rgba(37,99,235,0.20)',
+  borderColor: 'rgba(96,165,250,0.26)',
+}
+
+const comparePeriods = (a: string, b: string) => {
+  const parsedA = parseStatementPeriod(a)
+  const parsedB = parseStatementPeriod(b)
+
+  if (!parsedA || !parsedB) return a.localeCompare(b)
+
+  const aValue = parsedA.year * 12 + parsedA.monthIndex
+  const bValue = parsedB.year * 12 + parsedB.monthIndex
+  return aValue - bValue
 }
 
 /**
@@ -173,6 +203,10 @@ export function ChatWindow() {
   // Filters the user picks *for this chat* (don’t necessarily track global switchers)
   const [accountFilter, setAccountFilter] = useState<Account | ''>('')
   const [periodFilter, setPeriodFilter] = useState<string>('')
+  const [periodRangeFilter, setPeriodRangeFilter] = useState<{ start: string; end: string } | null>(null)
+  const [periodMode, setPeriodMode] = useState<PeriodFilterMode>('single')
+  const [draftSinglePeriod, setDraftSinglePeriod] = useState<string>('')
+  const [draftPeriodRange, setDraftPeriodRange] = useState<{ start: string; end: string }>({ start: '', end: '' })
 
   const [picker, setPicker] = useState<null | 'account' | 'period'>(null)
 
@@ -188,16 +222,41 @@ export function ChatWindow() {
     return 'Account'
   }, [accountValueForApi])
 
-  const periodLabel = useMemo(() => periodFilter || 'Period', [periodFilter])
+  const periodLabel = useMemo(() => {
+    if (periodRangeFilter?.start && periodRangeFilter?.end) {
+      return `${periodRangeFilter.start} → ${periodRangeFilter.end}`
+    }
 
-  const periodValueForApi: string | undefined = periodFilter || undefined
+    return periodFilter || 'Period'
+  }, [periodFilter, periodRangeFilter])
+
+  const periodValueForApi: string | undefined = periodRangeFilter ? undefined : (periodFilter || undefined)
 
   const periodOptions = useMemo(() => {
     const opts = availablePeriods?.length ? availablePeriods : storeSelectedPeriod ? [storeSelectedPeriod] : []
     // Ensure the currently chosen period exists in the list so it can be re-selected
-    if (periodFilter && !opts.includes(periodFilter)) return [periodFilter, ...opts]
-    return opts
-  }, [availablePeriods, storeSelectedPeriod, periodFilter])
+    const withSingle = periodFilter && !opts.includes(periodFilter) ? [periodFilter, ...opts] : opts
+    const withRangeStart = periodRangeFilter?.start && !withSingle.includes(periodRangeFilter.start)
+      ? [periodRangeFilter.start, ...withSingle]
+      : withSingle
+    const withRangeEnd = periodRangeFilter?.end && !withRangeStart.includes(periodRangeFilter.end)
+      ? [periodRangeFilter.end, ...withRangeStart]
+      : withRangeStart
+    return [...withRangeEnd].sort(comparePeriods)
+  }, [availablePeriods, storeSelectedPeriod, periodFilter, periodRangeFilter])
+
+  const defaultSinglePeriod = periodFilter || periodOptions[0] || ''
+  const defaultRangeStart = periodRangeFilter?.start ?? periodOptions[0] ?? ''
+  const defaultRangeEnd = periodRangeFilter?.end ?? defaultRangeStart
+
+  const openPeriodPicker = () => {
+    setDraftSinglePeriod(defaultSinglePeriod)
+    setDraftPeriodRange({
+      start: defaultRangeStart,
+      end: defaultRangeEnd,
+    })
+    setPicker('period')
+  }
 
   useEffect(() => {
     console.log('[ChatWindow] filters', { accountFilter, periodFilter })
@@ -250,6 +309,7 @@ export function ChatWindow() {
             filters={{
               account: accountValueForApi,
               period: periodValueForApi,
+              periodRange: periodRangeFilter ?? undefined,
             }}
             filtersSlot={
               <div className="chatFiltersRow" style={{ justifyContent: 'flex-start' }}>
@@ -263,8 +323,8 @@ export function ChatWindow() {
 
                 <button
                   type="button"
-                  className={`chatFilterPill ${periodValueForApi ? 'chatFilterPillActive' : ''}`}
-                  onClick={() => setPicker('period')}
+                  className={`chatFilterPill ${periodValueForApi || periodRangeFilter ? 'chatFilterPillActive' : ''}`}
+                  onClick={openPeriodPicker}
                   style={{ maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}
                 >
                   {periodLabel}
@@ -292,14 +352,8 @@ export function ChatWindow() {
                   setPicker(null)
                 }}
                 style={{
-                  padding: '12px 14px',
-                  borderRadius: 14,
-                  border: '1px solid rgba(255,255,255,0.12)',
-                  background: 'rgba(255,255,255,0.04)',
-                  color: '#e6eef8',
-                  fontWeight: 800,
-                  textAlign: 'left',
-                  cursor: 'pointer',
+                  ...pickerOptionBaseStyle,
+                  ...((o.v ? o.v === accountFilter : !accountFilter) ? pickerOptionActiveStyle : null),
                 }}
               >
                 {o.label}
@@ -315,48 +369,174 @@ export function ChatWindow() {
         onClose={() => setPicker(null)}
       >
         <div style={{ display: 'grid', gap: 10 }}>
-          <button
-            type="button"
-            onClick={() => {
-              setPeriodFilter('')
-              setPicker(null)
-            }}
-            style={{
-              padding: '12px 14px',
-              borderRadius: 14,
-              border: '1px solid rgba(255,255,255,0.12)',
-              background: !periodFilter ? 'rgba(37,99,235,0.20)' : 'rgba(255,255,255,0.04)',
-              color: '#e6eef8',
-              fontWeight: 800,
-              textAlign: 'left',
-              cursor: 'pointer',
-            }}
-          >
-            Any period
-          </button>
-
-          {periodOptions.map((p) => (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <button
-              key={p}
               type="button"
-              onClick={() => {
-                setPeriodFilter(p)
-                setPicker(null)
-              }}
+              onClick={() => setPeriodMode('single')}
               style={{
-                padding: '12px 14px',
-                borderRadius: 14,
-                border: '1px solid rgba(255,255,255,0.12)',
-                background: p === periodFilter ? 'rgba(37,99,235,0.20)' : 'rgba(255,255,255,0.04)',
-                color: '#e6eef8',
-                fontWeight: 800,
-                textAlign: 'left',
-                cursor: 'pointer',
+                ...pickerOptionBaseStyle,
+                ...(periodMode === 'single' ? pickerOptionActiveStyle : null),
+                textAlign: 'center',
               }}
             >
-              {p}
+              Single period
             </button>
-          ))}
+
+            <button
+              type="button"
+              onClick={() => setPeriodMode('range')}
+              style={{
+                ...pickerOptionBaseStyle,
+                ...(periodMode === 'range' ? pickerOptionActiveStyle : null),
+                textAlign: 'center',
+              }}
+            >
+              Period range
+            </button>
+          </div>
+
+
+          {periodMode === 'single'
+            ? (
+                <div style={{ display: 'grid', gap: 12 }}>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gap: 12,
+                      padding: 12,
+                      borderRadius: 16,
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      background: 'rgba(255,255,255,0.03)',
+                    }}
+                  >
+                    <div style={{ display: 'grid', gap: 8 }}>
+                      <span style={{ color: 'rgba(230,255,248,0.72)', fontSize: 13, fontWeight: 800, letterSpacing: '0.02em', textTransform: 'uppercase' }}>Statement period</span>
+                      <select
+                        className="tt-proj-input"
+                        value={draftSinglePeriod}
+                        onChange={(event) => setDraftSinglePeriod(event.target.value)}
+                      >
+                        {periodOptions.map((p) => (
+                          <option key={`single-${p}`} value={p}>
+                            {p}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!draftSinglePeriod) return
+                        setPeriodFilter(draftSinglePeriod)
+                        setPeriodRangeFilter(null)
+                        setPicker(null)
+                      }}
+                      style={{
+                        ...pickerOptionBaseStyle,
+                        ...pickerOptionActiveStyle,
+                        textAlign: 'center',
+                      }}
+                    >
+                      Apply period
+                    </button>
+                  </div>
+                </div>
+              )
+            : (
+                <div style={{ display: 'grid', gap: 12 }}>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gap: 12,
+                      padding: 12,
+                      borderRadius: 16,
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      background: 'rgba(255,255,255,0.03)',
+                    }}
+                  >
+                    <div style={{ display: 'grid', gap: 8 }}>
+                      <span style={{ color: 'rgba(230,255,248,0.72)', fontSize: 13, fontWeight: 800, letterSpacing: '0.02em', textTransform: 'uppercase' }}>Start period</span>
+                      <select
+                        className="tt-proj-input"
+                        value={draftPeriodRange.start}
+                        onChange={(event) => {
+                          const nextStart = event.target.value
+                          setDraftPeriodRange((current) => ({
+                            start: nextStart,
+                            end: current.end && comparePeriods(current.end, nextStart) >= 0 ? current.end : nextStart,
+                          }))
+                        }}
+                      >
+                        {periodOptions.map((p) => (
+                          <option key={`start-${p}`} value={p}>
+                            {p}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'grid', gap: 8 }}>
+                      <span style={{ color: 'rgba(230,255,248,0.72)', fontSize: 13, fontWeight: 800, letterSpacing: '0.02em', textTransform: 'uppercase' }}>End period</span>
+                      <select
+                        className="tt-proj-input"
+                        value={draftPeriodRange.end}
+                        onChange={(event) => {
+                          setDraftPeriodRange((current) => ({
+                            start: current.start || event.target.value,
+                            end: event.target.value,
+                          }))
+                        }}
+                      >
+                        {periodOptions.map((p) => {
+                          const disabled = Boolean(draftPeriodRange.start && comparePeriods(p, draftPeriodRange.start) < 0)
+
+                          return (
+                            <option key={`end-${p}`} value={p} disabled={disabled}>
+                              {p}
+                            </option>
+                          )
+                        })}
+                      </select>
+                    </div>
+
+                    <div
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: 12,
+                        background: 'rgba(37,99,235,0.14)',
+                        color: '#dbeafe',
+                        fontWeight: 800,
+                        fontSize: 14,
+                      }}
+                    >
+                      {draftPeriodRange.start && draftPeriodRange.end
+                        ? `${draftPeriodRange.start} → ${draftPeriodRange.end}`
+                        : 'Choose a start and end period'}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!draftPeriodRange.start || !draftPeriodRange.end) return
+                        setPeriodRangeFilter({
+                          start: draftPeriodRange.start,
+                          end: draftPeriodRange.end,
+                        })
+                        setPeriodFilter('')
+                        setPicker(null)
+                      }}
+                      style={{
+                        ...pickerOptionBaseStyle,
+                        ...pickerOptionActiveStyle,
+                        textAlign: 'center',
+                      }}
+                    >
+                      Apply range
+                    </button>
+                  </div>
+                </div>
+              )}
         </div>
       </Modal>
     </>
