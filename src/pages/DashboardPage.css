@@ -1145,6 +1145,25 @@ html, body, #root, .main-layout, .dashboard-page-root {
   color: var(--tt-color-accent);
 }
 
+.tt-nested-row-child .tt-nested-title-cell,
+.tt-nested-row-child .tt-nested-total-cell,
+.tt-nested-row-transactions .tt-nested-title-cell,
+.tt-nested-row-transactions .tt-nested-total-cell {
+  cursor: pointer;
+}
+
+.tt-nested-row-child .tt-nested-title-cell,
+.tt-nested-row-child .tt-nested-total-cell {
+  color: var(--tt-color-accent);
+  font-weight: 500;
+}
+
+.tt-nested-row-transactions .tt-nested-title-cell,
+.tt-nested-row-transactions .tt-nested-total-cell {
+  color: rgba(173, 183, 194, 0.82);
+  font-weight: 500;
+}
+
 .tt-nested-subrow-label {
   display: block;
   width: 100%;
@@ -1178,6 +1197,11 @@ html, body, #root, .main-layout, .dashboard-page-root {
   white-space: nowrap;
 }
 
+.tt-nested-subrow-text-transactions {
+  color: rgba(173, 183, 194, 0.82);
+  font-weight: 500;
+}
+
 .tt-nested-subrow-checkbox {
   width: 16px;
   height: 16px;
@@ -1194,6 +1218,10 @@ html, body, #root, .main-layout, .dashboard-page-root {
   bottom: -1px;
   width: 1px;
   background: rgba(141, 176, 255, 0.72);
+}
+
+.tt-nested-row-transactions .tt-nested-title-cell::before {
+  background: rgba(255, 255, 255, 0.7);
 }
 
 .tt-nested-total-cell {
@@ -1232,6 +1260,10 @@ html, body, #root, .main-layout, .dashboard-page-root {
 
 .tt-nested-row-child .tt-nested-total-cell {
   color: rgba(245, 197, 66, 0.98);
+}
+
+.tt-nested-row-transactions .tt-nested-total-cell {
+  color: rgba(173, 183, 194, 0.82);
 }
 
 .tt-nested-row-expandable .tt-nested-title-cell strong {
