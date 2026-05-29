@@ -176,7 +176,10 @@ export const NestedCategoryTable = ({ rows = defaultRows }: NestedCategoryTableP
         }
 
         return (
-          <label className="tt-nested-subrow-label" onClick={(event) => event.stopPropagation()}>
+          <label
+            className={`tt-nested-subrow-label ${editMode ? 'tt-nested-subrow-label-edit' : ''}`}
+            onClick={(event) => event.stopPropagation()}
+          >
             {editMode && (
               <input
                 type="checkbox"
@@ -190,7 +193,7 @@ export const NestedCategoryTable = ({ rows = defaultRows }: NestedCategoryTableP
                 }}
               />
             )}
-            <span>{title}</span>
+            <span className="tt-nested-subrow-text">{title}</span>
           </label>
         )
       },

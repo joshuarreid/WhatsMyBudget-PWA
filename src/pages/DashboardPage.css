@@ -1119,11 +1119,24 @@ html, body, #root, .main-layout, .dashboard-page-root {
 }
 
 .tt-nested-subrow-label {
+  display: block;
+  width: 100%;
+}
+
+.tt-nested-subrow-label-edit {
   display: grid;
   grid-template-columns: 16px minmax(0, 1fr);
   align-items: start;
   gap: 10px;
-  width: 100%;
+}
+
+.tt-nested-subrow-text {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tt-nested-subrow-checkbox {
