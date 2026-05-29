@@ -257,6 +257,18 @@ const getDefaultExpandedState = (): ExpandedState => {
   return {}
 }
 
+const getExpandedStateForRows = (rows: CategoryRow[]): ExpandedState => {
+  const expandedState: Record<string, boolean> = {}
+
+  rows.forEach((row) => {
+    if (row.children.length > 0) {
+      expandedState[row.id] = true
+    }
+  })
+
+  return expandedState
+}
+
 const getRowClassName = (row: NestedTableRow, depth: number) => {
   const classNames = ['tt-nested-row', depth === 0 ? 'tt-nested-row-parent' : 'tt-nested-row-child']
 
@@ -369,6 +381,10 @@ export const NestedCategoryTable = ({ account, statementPeriod, actualTransactio
 
     return expandableCategoryRows.every((row) => Boolean(expanded[row.id]))
   }, [expandableCategoryRows, expanded])
+  const expandedStateForAllRows = useMemo(
+    () => getExpandedStateForRows(expandableCategoryRows),
+    [expandableCategoryRows],
+  )
 
   const openCreateModal = () => {
     const resolvedAccount = account?.trim() ?? ''
@@ -508,14 +524,14 @@ export const NestedCategoryTable = ({ account, statementPeriod, actualTransactio
       return
     }
 
-    setExpanded(getDefaultExpandedState())
+    setExpanded(expandedStateForAllRows)
   }
 
   const toggleEditMode = () => {
     setEditMode((current) => {
       const next = !current
       if (next) {
-        setExpanded(getDefaultExpandedState())
+        setExpanded(expandedStateForAllRows)
       } else {
         setSelectedSubrowIds([])
       }
