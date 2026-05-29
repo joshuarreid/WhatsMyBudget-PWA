@@ -130,9 +130,22 @@ export const updateProjectedTransaction = async (
   id: string,
   data: ProjectedTransaction
 ): Promise<ProjectedTransaction> => {
+  // Backend PUT contract requires `transactionDate` (not `projectedDate`).
+  // It also requires `createdTime` per the model; fall back to now if not preserved.
+  const transactionDate =
+    data.transactionDate ?? data.projectedDate ?? data.projectedTransactionDate ?? ''
+  const createdTime = data.createdTime ?? new Date().toISOString()
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { projectedDate, projectedTransactionDate, ...rest } = data
+
   const response = await projectedTransactionsApiClient.put<ProjectedTransaction>(
     `${projectedTransactionsApiClient.getBasePath()}/${id}`,
-    data
+    {
+      ...rest,
+      transactionDate,
+      createdTime,
+    }
   )
   return response.data
 }

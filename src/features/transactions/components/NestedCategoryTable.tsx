@@ -61,6 +61,8 @@ type FormState = {
   account: string
   criticality: string
   paymentMethod: string
+  createdTime?: string
+  status?: string
 }
 
 type CategoryTxnItem = {
@@ -160,6 +162,8 @@ const toFormState = (tx?: ProjectedTransaction): FormState => {
     account: tx?.account ?? '',
     criticality: tx?.criticality ?? '',
     paymentMethod: tx?.paymentMethod ?? '',
+    createdTime: tx?.createdTime,
+    status: tx?.status,
   }
 }
 
@@ -171,10 +175,13 @@ const toApiPayload = (form: FormState): ProjectedTransaction => {
     amount: Number(form.amount),
     category: normalizeCategory(form.category),
     projectedDate: form.projectedDate,
+    transactionDate: form.projectedDate,
     statementPeriod: form.statementPeriod.trim(),
     account: form.account.trim(),
     criticality: form.criticality.trim(),
     paymentMethod: form.paymentMethod.trim(),
+    createdTime: form.createdTime,
+    status: form.status,
   }
 }
 

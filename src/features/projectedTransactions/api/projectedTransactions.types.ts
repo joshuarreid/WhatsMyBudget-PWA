@@ -9,9 +9,15 @@ export interface ProjectedTransaction {
   /** backend may use name */
   name?: string
   description?: string
+  /** frontend display field; mapped to transactionDate for PUT requests */
   projectedDate: string
+  /** backend PUT/POST payloads use transactionDate */
+  transactionDate?: string
   /** some legacy servers may use projectedTransactionDate */
   projectedTransactionDate?: string
+  /** required by backend model on PUT */
+  createdTime?: string
+  status?: string
 }
 
 export interface ProjectedTransactionList {
