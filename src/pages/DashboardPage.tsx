@@ -60,6 +60,7 @@ export const DashboardPage = () => {
                   <NestedCategoryTable
                     account={selectedAccount}
                     statementPeriod={selectedPeriod}
+                    actualTransactions={sortedActualTransactions}
                     transactions={sortedProjectedTransactions}
                   />
                 </>

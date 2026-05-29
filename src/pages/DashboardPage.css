@@ -1190,6 +1190,10 @@ html, body, #root, .main-layout, .dashboard-page-root {
   font-weight: 800;
 }
 
+.tt-nested-row-parent-projected .tt-nested-total-cell {
+  color: rgba(245, 197, 66, 0.98);
+}
+
 .tt-nested-table thead .tt-nested-total-cell {
   text-align: right;
 }

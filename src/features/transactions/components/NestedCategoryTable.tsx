@@ -3,6 +3,7 @@ import { Modal } from '@/components/Modal'
 import { config } from '@/config/env'
 import { useCreateProjectedTransaction, useDeleteProjectedTransaction } from '@/features/projectedTransactions'
 import type { ProjectedTransaction } from '@/features/projectedTransactions/api/projectedTransactions.types.ts'
+import type { BudgetTransaction } from '@/features/transactions/api/transactions.types.ts'
 import { statementPeriodToLastDayInputDate } from '@/utils/statementPeriod'
 import { flexRender, getCoreRowModel, getExpandedRowModel, useReactTable, type ColumnDef, type ExpandedState } from '@tanstack/react-table'
 
@@ -12,6 +13,9 @@ type CategoryRow = {
   category: string
   title: string
   total: number
+  actualTotal: number
+  projectedTotal: number
+  hasProjected: boolean
   children: ProjectedTransactionRow[]
 }
 
@@ -29,6 +33,7 @@ type NestedTableRow = CategoryRow | ProjectedTransactionRow
 type NestedCategoryTableProps = {
   account?: string
   statementPeriod?: string
+  actualTransactions?: BudgetTransaction[]
   transactions?: ProjectedTransaction[]
 }
 
@@ -78,31 +83,46 @@ const parseCurrencyAmount = (value: string) => {
   return Number.isFinite(num) ? num : NaN
 }
 
-const buildCategoryRows = (transactions: ProjectedTransaction[]): CategoryRow[] => {
-  const grouped = new Map<string, ProjectedTransactionRow[]>()
+const coerceAmount = (value: unknown) => {
+  const num = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(num) ? num : 0
+}
+
+const buildCategoryRows = (actualTransactions: BudgetTransaction[], transactions: ProjectedTransaction[]): CategoryRow[] => {
+  const grouped = new Map<string, { actualTotal: number; children: ProjectedTransactionRow[] }>()
+
+  for (const transaction of actualTransactions) {
+    const category = normalizeCategory(transaction.category)
+    const entry = grouped.get(category) ?? { actualTotal: 0, children: [] }
+    entry.actualTotal += coerceAmount(transaction.amount)
+    grouped.set(category, entry)
+  }
 
   for (const transaction of transactions) {
     const category = normalizeCategory(transaction.category)
-    const rows = grouped.get(category) ?? []
-    rows.push({
+    const entry = grouped.get(category) ?? { actualTotal: 0, children: [] }
+    entry.children.push({
       kind: 'projected-transaction',
-      id: transaction.id != null ? `projected-${transaction.id}` : `${category}-${rows.length}-${transaction.projectedDate ?? transaction.projectedTransactionDate ?? ''}`,
+      id: transaction.id != null ? `projected-${transaction.id}` : `${category}-${entry.children.length}-${transaction.projectedDate ?? transaction.projectedTransactionDate ?? ''}`,
       title: toProjectedTransactionTitle(transaction),
-      total: Number(transaction.amount) || 0,
+      total: coerceAmount(transaction.amount),
       category,
       projectedTransactionId: transaction.id != null ? String(transaction.id) : undefined,
     })
-    grouped.set(category, rows)
+    grouped.set(category, entry)
   }
 
   return Array.from(grouped.entries())
-    .map<CategoryRow>(([category, children]) => ({
+    .map<CategoryRow>(([category, entry]) => ({
       kind: 'category',
       id: category,
       category,
       title: category,
-      total: children.reduce((sum, child) => sum + child.total, 0),
-      children,
+      actualTotal: entry.actualTotal,
+      projectedTotal: entry.children.reduce((sum, child) => sum + child.total, 0),
+      total: entry.actualTotal + entry.children.reduce((sum, child) => sum + child.total, 0),
+      hasProjected: entry.children.length > 0,
+      children: entry.children,
     }))
     .sort((a, b) => {
       if (b.total !== a.total) return b.total - a.total
@@ -131,7 +151,15 @@ const getDefaultExpandedState = (rows: CategoryRow[]): ExpandedState => {
   return expanded
 }
 
-const getRowClassName = (depth: number) => `tt-nested-row ${depth === 0 ? 'tt-nested-row-parent' : 'tt-nested-row-child'}`
+const getRowClassName = (row: NestedTableRow, depth: number) => {
+  const classNames = ['tt-nested-row', depth === 0 ? 'tt-nested-row-parent' : 'tt-nested-row-child']
+
+  if (row.kind === 'category' && row.hasProjected) {
+    classNames.push('tt-nested-row-parent-projected')
+  }
+
+  return classNames.join(' ')
+}
 
 const getCellClassName = (columnId: string) => {
   switch (columnId) {
@@ -167,10 +195,10 @@ const PlusSquareIcon = () => (
   </svg>
 )
 
-export const NestedCategoryTable = ({ account, statementPeriod, transactions = [] }: NestedCategoryTableProps) => {
+export const NestedCategoryTable = ({ account, statementPeriod, actualTransactions = [], transactions = [] }: NestedCategoryTableProps) => {
   const createMutation = useCreateProjectedTransaction()
   const deleteMutation = useDeleteProjectedTransaction()
-  const categoryRows = useMemo(() => buildCategoryRows(transactions), [transactions])
+  const categoryRows = useMemo(() => buildCategoryRows(actualTransactions, transactions), [actualTransactions, transactions])
   const availableCategories = useMemo(() => {
     const configured = config.categories.map(normalizeCategory)
     return configured.length > 0 ? configured : categoryRows.map((row) => row.category)
@@ -440,7 +468,7 @@ export const NestedCategoryTable = ({ account, statementPeriod, transactions = [
           {table.getRowModel().rows.map((row) => (
             <tr
               key={row.id}
-              className={getRowClassName(row.depth)}
+               className={getRowClassName(row.original, row.depth)}
               data-depth={row.depth}
               onClick={row.getCanExpand() ? () => toggleRow(row.id) : undefined}
               onKeyDown={row.getCanExpand()
