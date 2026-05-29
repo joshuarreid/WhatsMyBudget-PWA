@@ -154,6 +154,10 @@ const getDefaultExpandedState = (rows: CategoryRow[]): ExpandedState => {
 const getRowClassName = (row: NestedTableRow, depth: number) => {
   const classNames = ['tt-nested-row', depth === 0 ? 'tt-nested-row-parent' : 'tt-nested-row-child']
 
+  if (row.kind === 'category' && row.children.length > 0) {
+    classNames.push('tt-nested-row-expandable')
+  }
+
   if (row.kind === 'category' && row.hasProjected) {
     classNames.push('tt-nested-row-parent-projected')
   }
@@ -212,12 +216,16 @@ export const NestedCategoryTable = ({ account, statementPeriod, actualTransactio
   const [addError, setAddError] = useState<string | null>(null)
   const overallTotal = useMemo(() => categoryRows.reduce((sum, row) => sum + row.total, 0), [categoryRows])
   const selectedSubrowSet = useMemo(() => new Set(selectedSubrowIds), [selectedSubrowIds])
+  const expandableCategoryRows = useMemo(
+    () => categoryRows.filter((row) => row.children.length > 0),
+    [categoryRows],
+  )
   const allRowsExpanded = useMemo(() => {
-    if (categoryRows.length === 0) return false
+    if (expandableCategoryRows.length === 0) return false
     if (expanded === true) return true
 
-    return categoryRows.every((row) => Boolean(expanded[row.id]))
-  }, [categoryRows, expanded])
+    return expandableCategoryRows.every((row) => Boolean(expanded[row.id]))
+  }, [expandableCategoryRows, expanded])
 
   const columns = useMemo<ColumnDef<NestedTableRow>[]>(() => [
     {
@@ -415,7 +423,7 @@ export const NestedCategoryTable = ({ account, statementPeriod, actualTransactio
             type="button"
             className="tt-nested-toolbar-text-button"
             onClick={toggleAllRows}
-            disabled={categoryRows.length === 0}
+            disabled={expandableCategoryRows.length === 0}
           >
             {allRowsExpanded ? 'Collapse all' : 'Expand all'}
           </button>
