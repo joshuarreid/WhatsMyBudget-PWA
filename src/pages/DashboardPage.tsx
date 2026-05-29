@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { MainLayout } from '../layouts/MainLayout'
-import { useTransactions, useCriticalitySummaries, CriticalityBreakdownTreeWidget, DualRingStat, NestedCategoryTable, TransactionList } from '@/features/transactions'
-import { useProjectedTransactions, ProjectedTransactionList } from '@/features/projectedTransactions'
+import { useTransactions, useCriticalitySummaries, DualRingStat, NestedCategoryTable, TransactionList } from '@/features/transactions'
+import { useProjectedTransactions } from '@/features/projectedTransactions'
 import { useProfileStore } from '../store/useProfileStore'
 import { useStatementPeriodStore } from '../store/useStatementPeriodStore'
 import './DashboardPage.css'
@@ -15,8 +15,7 @@ export const DashboardPage = () => {
   }, [selectedPeriod])
 
   const { data: transactions, isPending: transactionsLoading } = useTransactions(selectedAccount, filters)
-  const { data: projectedTransactions, isPending: projectedLoading } = useProjectedTransactions(selectedAccount, filters)
-
+  const { data: projectedTransactions } = useProjectedTransactions(selectedAccount, filters)
   const {
     data: criticalityDetails,
     isPending: criticalityPending,
@@ -48,46 +47,18 @@ export const DashboardPage = () => {
           {selectedPeriod && (
             <div className="tt-subcard">
               {criticalityPending && <p className="tt-empty">Loading criticality summary...</p>}
-              {criticalityError && (
-                <p className="tt-error">Failed to load criticality summary.</p>
-              )}
+              {criticalityError && <p className="tt-error">Failed to load criticality summary.</p>}
               {criticalityDetails && (
-                <>
-                  <DualRingStat
-                    essential={criticalityDetails.summaries.essential}
-                    nonessential={criticalityDetails.summaries.nonessential}
-                  />
-                  <NestedCategoryTable
-                    account={selectedAccount}
-                    statementPeriod={selectedPeriod}
-                    actualTransactions={sortedActualTransactions}
-                    transactions={sortedProjectedTransactions}
-                  />
-                </>
+                <DualRingStat
+                  essential={criticalityDetails.summaries.essential}
+                  nonessential={criticalityDetails.summaries.nonessential}
+                />
               )}
-            </div>
-          )}
-          <div className="tt-subcard">
-            <div className="tt-section-title">Projected Transactions</div>
-            {projectedLoading && <p className="tt-empty">Loading projected transactions...</p>}
-            <div className="tt-body">
-              {projectedTransactions ? (
-                <ProjectedTransactionList transactions={sortedProjectedTransactions} />
-              ) : (
-                <div className="tt-empty" />
-              )}
-            </div>
-          </div>
-          {selectedPeriod && criticalityDetails && (
-            <div className="tt-subcard">
-              <div className="tt-section-title">Criticality Breakdown</div>
-              <CriticalityBreakdownTreeWidget
+              <NestedCategoryTable
                 account={selectedAccount}
                 statementPeriod={selectedPeriod}
-                essentialByCategory={criticalityDetails.essential.byCategory}
-                nonessentialByCategory={criticalityDetails.nonessential.byCategory}
-                essentialProjected={criticalityDetails.essential.projected}
-                nonessentialProjected={criticalityDetails.nonessential.projected}
+                actualTransactions={sortedActualTransactions}
+                transactions={sortedProjectedTransactions}
               />
             </div>
           )}
