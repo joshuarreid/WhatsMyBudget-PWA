@@ -6,7 +6,7 @@ import { useProfileStore } from '@/store/useProfileStore'
 import type { Account } from '@/store/useProfileStore'
 import { useStatementPeriodStore } from '@/store/useStatementPeriodStore'
 import { Modal } from '@/components/Modal'
-import { parseStatementPeriod } from '@/utils/statementPeriodWindow'
+import { formatStatementPeriod, parseStatementPeriod } from '@/utils/statementPeriodWindow'
 
 type UiMessage = {
   id: string
@@ -231,6 +231,10 @@ export function ChatWindow() {
   }, [periodFilter, periodRangeFilter])
 
   const periodValueForApi: string | undefined = periodRangeFilter ? undefined : (periodFilter || undefined)
+  const currentPeriod = useMemo(() => {
+    const now = new Date()
+    return formatStatementPeriod(now.getMonth(), now.getFullYear())
+  }, [])
 
   const periodOptions = useMemo(() => {
     const opts = availablePeriods?.length ? availablePeriods : storeSelectedPeriod ? [storeSelectedPeriod] : []
@@ -242,8 +246,10 @@ export function ChatWindow() {
     const withRangeEnd = periodRangeFilter?.end && !withRangeStart.includes(periodRangeFilter.end)
       ? [periodRangeFilter.end, ...withRangeStart]
       : withRangeStart
-    return [...withRangeEnd].sort(comparePeriods)
-  }, [availablePeriods, storeSelectedPeriod, periodFilter, periodRangeFilter])
+    return [...withRangeEnd]
+      .filter((period) => comparePeriods(period, currentPeriod) <= 0)
+      .sort(comparePeriods)
+  }, [availablePeriods, storeSelectedPeriod, periodFilter, periodRangeFilter, currentPeriod])
 
   const defaultSinglePeriod = periodFilter || periodOptions[0] || ''
   const defaultRangeStart = periodRangeFilter?.start ?? periodOptions[0] ?? ''
