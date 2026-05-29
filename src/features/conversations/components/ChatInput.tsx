@@ -22,6 +22,24 @@ interface ChatInputProps {
 
 const isNonEmpty = (s: string) => s.trim().length > 0
 
+const SendIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path
+      d="M4 11.5 19.5 4l-4.6 16-3.5-5.1L4 11.5Z"
+      fill="currentColor"
+      opacity="0.92"
+    />
+    <path
+      d="M10.9 14.8 19.5 4"
+      fill="none"
+      stroke="rgba(15, 23, 42, 0.34)"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
+
 export function ChatInput({
   conversationId,
   onConversationId,
@@ -123,66 +141,41 @@ export function ChatInput({
         backdropFilter: 'blur(6px)',
       }}
     >
-      {filtersSlot ? <div style={{ marginBottom: 8 }}>{filtersSlot}</div> : null}
+      {filtersSlot ? <div className="chatComposerFilters">{filtersSlot}</div> : null}
 
-      <div
-        className="tt-card"
-        style={{
-          padding: 10,
-          display: 'grid',
-          gridTemplateColumns: '1fr auto',
-          gap: 10,
-          alignItems: 'end',
-        }}
-      >
-        <textarea
-          ref={textareaRef}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          placeholder={isSending ? 'Sending…' : 'Ask about your budget…'}
-          disabled={disabled || isSending}
-          rows={1}
-          style={{
-            width: '100%',
-            resize: 'none',
-            overflowY: 'hidden',
-            borderRadius: 12,
-            border: '1px solid rgba(255,255,255,0.12)',
-            background: 'rgba(255,255,255,0.03)',
-            color: '#e6eef8',
-            padding: '10px 12px',
-            lineHeight: 1.35,
-            outline: 'none',
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault()
-              if (canSend) void send()
-            }
-          }}
-        />
+      <div className="chatComposerShell">
+        <div className="chatComposerInputRow">
+          <textarea
+            ref={textareaRef}
+            className="chatComposerTextarea"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder={isSending ? 'Sending…' : 'Ask about your budget…'}
+            disabled={disabled || isSending}
+            rows={1}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                if (canSend) void send()
+              }
+            }}
+          />
 
-        <button
-          type="button"
-          onClick={() => void send()}
-          disabled={!canSend}
-          style={{
-            padding: '10px 14px',
-            borderRadius: 12,
-            border: '1px solid rgba(255,255,255,0.12)',
-            background: canSend ? 'rgba(37,99,235,0.95)' : 'rgba(255,255,255,0.06)',
-            color: canSend ? '#ffffff' : 'rgba(230,238,248,0.55)',
-            fontWeight: 800,
-            cursor: canSend ? 'pointer' : 'not-allowed',
-            minHeight: 40,
-          }}
-        >
-          Send
-        </button>
+          <button
+            type="button"
+            className={`chatComposerSend ${canSend ? 'chatComposerSendActive' : ''}`}
+            onClick={() => void send()}
+            disabled={!canSend}
+            aria-label="Send message"
+            title="Send message"
+          >
+            <SendIcon />
+          </button>
+        </div>
       </div>
 
       {askRag.isError ? (
-        <div style={{ marginTop: 6, color: 'rgba(255, 170, 170, 0.9)', fontSize: 13 }}>
+        <div className="chatComposerError">
           Send failed. You can try again.
         </div>
       ) : null}
