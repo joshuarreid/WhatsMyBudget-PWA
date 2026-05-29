@@ -79,9 +79,8 @@ const parseCurrencyAmount = (value: string) => {
 
 const normalizeRows = (items: NestedTableRow[]): NestedTableRow[] => {
   return items.map((item) => {
-    const hasChildren = Array.isArray(item.children)
     const children = item.children ? normalizeRows(item.children) : item.children
-    const total = hasChildren ? (children?.reduce((sum, child) => sum + child.total, 0) ?? 0) : item.total
+    const total = children?.length ? children.reduce((sum, child) => sum + child.total, 0) : item.total
 
     return {
       ...item,
@@ -130,91 +129,30 @@ const getCellClassName = (columnId: string) => {
 
 const PencilIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <path
-      d="M4 20h4l10.5-10.5a1.4 1.4 0 0 0 0-2L16.5 5a1.4 1.4 0 0 0-2 0L4 15.5V20Z"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="m13.5 6 4.5 4.5"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
+    <path d="M4 20h4l10.5-10.5a1.4 1.4 0 0 0 0-2L16.5 5a1.4 1.4 0 0 0-2 0L4 15.5V20Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="m13.5 6 4.5 4.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 )
 
 const TrashIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <path
-      d="M5 7h14"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M9 7V5.8c0-.44.36-.8.8-.8h4.4c.44 0 .8.36.8.8V7"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M8 7v10.2c0 .99.81 1.8 1.8 1.8h4.4c.99 0 1.8-.81 1.8-1.8V7"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M10.5 10.5v5M13.5 10.5v5"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
+    <path d="M5 7h14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M9 7V5.8c0-.44.36-.8.8-.8h4.4c.44 0 .8.36.8.8V7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M8 7v10.2c0 .99.81 1.8 1.8 1.8h4.4c.99 0 1.8-.81 1.8-1.8V7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M10.5 10.5v5M13.5 10.5v5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 )
 
 const PlusSquareIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <rect
-      x="4.5"
-      y="4.5"
-      width="15"
-      height="15"
-      rx="2.5"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-    />
-    <path
-      d="M12 8.5v7M8.5 12h7"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
+    <rect x="4.5" y="4.5" width="15" height="15" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+    <path d="M12 8.5v7M8.5 12h7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 )
 
 export const NestedCategoryTable = ({ rows = defaultRows }: NestedCategoryTableProps) => {
   const normalizedRows = useMemo(() => normalizeRows(rows), [rows])
-  const parentOptions = useMemo(
-    () => normalizedRows.map((row) => ({ id: row.id, title: row.title })),
-    [normalizedRows]
-  )
+  const parentOptions = useMemo(() => normalizedRows.map((row) => ({ id: row.id, title: row.title })), [normalizedRows])
   const initialExpanded = useMemo(() => getDefaultExpandedState(normalizedRows), [normalizedRows])
   const [tableRows, setTableRows] = useState<NestedTableRow[]>(normalizedRows)
   const [expanded, setExpanded] = useState<ExpandedState>(initialExpanded)
@@ -300,9 +238,7 @@ export const NestedCategoryTable = ({ rows = defaultRows }: NestedCategoryTableP
   const toggleEditMode = () => {
     setEditMode((current) => {
       const next = !current
-      if (!next) {
-        setSelectedSubrowIds([])
-      }
+      if (!next) setSelectedSubrowIds([])
       return next
     })
   }
@@ -379,6 +315,7 @@ export const NestedCategoryTable = ({ rows = defaultRows }: NestedCategoryTableP
         }
       })
     ))
+
     setExpanded((current) => ({
       ...(current === true ? {} : current),
       [addForm.parentId]: true,

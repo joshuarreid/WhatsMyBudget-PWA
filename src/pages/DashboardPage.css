@@ -1119,16 +1119,19 @@ html, body, #root, .main-layout, .dashboard-page-root {
 }
 
 .tt-nested-subrow-label {
-  display: inline-flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: start;
   gap: 10px;
+  width: 100%;
 }
 
 .tt-nested-subrow-checkbox {
   width: 16px;
   height: 16px;
-  margin: 0;
+  margin: 2px 0 0;
   accent-color: rgba(141, 176, 255, 0.98);
+  justify-self: center;
 }
 
 .tt-nested-row-child .tt-nested-title-cell::before {
