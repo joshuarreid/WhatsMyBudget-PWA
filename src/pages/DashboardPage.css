@@ -1136,7 +1136,7 @@ html, body, #root, .main-layout, .dashboard-page-root {
 }
 
 .tt-nested-title-cell {
-  width: 68%;
+  width: 40%;
 }
 
 .tt-nested-row-child .tt-nested-title-cell {
@@ -1192,6 +1192,8 @@ html, body, #root, .main-layout, .dashboard-page-root {
   display: block;
   min-width: 0;
   max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 

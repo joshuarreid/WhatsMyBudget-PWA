@@ -253,19 +253,8 @@ const buildCategoryRows = (actualTransactions: BudgetTransaction[], transactions
 }
 
 
-const getDefaultExpandedState = (rows: CategoryRow[]): ExpandedState => {
-  const expanded: ExpandedState = {}
-
-  const visit = (items: CategoryRow[]) => {
-    for (const item of items) {
-      if (item.children.length) {
-        expanded[item.id] = true
-      }
-    }
-  }
-
-  visit(rows)
-  return expanded
+const getDefaultExpandedState = (): ExpandedState => {
+  return {}
 }
 
 const getRowClassName = (row: NestedTableRow, depth: number) => {
@@ -332,7 +321,7 @@ export const NestedCategoryTable = ({ account, statementPeriod, actualTransactio
   const paymentMethods = config.paymentMethods
   const defaultCriticalityMap = config.defaultCriticalityMap
   const defaultPaymentMethodMap = config.defaultPaymentMethodMap
-  const initialExpanded = useMemo(() => getDefaultExpandedState(categoryRows), [categoryRows])
+  const initialExpanded = useMemo(() => getDefaultExpandedState(), [])
   const [expanded, setExpanded] = useState<ExpandedState>(initialExpanded)
   const [editMode, setEditMode] = useState(false)
   const [selectedSubrowIds, setSelectedSubrowIds] = useState<string[]>([])
@@ -519,14 +508,14 @@ export const NestedCategoryTable = ({ account, statementPeriod, actualTransactio
       return
     }
 
-    setExpanded(getDefaultExpandedState(categoryRows))
+    setExpanded(getDefaultExpandedState())
   }
 
   const toggleEditMode = () => {
     setEditMode((current) => {
       const next = !current
       if (next) {
-        setExpanded(getDefaultExpandedState(categoryRows))
+        setExpanded(getDefaultExpandedState())
       } else {
         setSelectedSubrowIds([])
       }

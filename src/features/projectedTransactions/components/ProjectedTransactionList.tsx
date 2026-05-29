@@ -319,6 +319,7 @@ export const ProjectedTransactionList = ({ transactions }: ProjectedTransactionL
             </label> */}
 
             {/* Statement period is shown as read-only, not editable */}
+            {/* Statement period is shown as read-only, not editable */}
             <label className="tt-proj-field">
               <span className="tt-proj-label">Statement period</span>
               <input
