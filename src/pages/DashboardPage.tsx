@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { MainLayout } from '../layouts/MainLayout'
-import { useTransactions, useCriticalitySummaries, CriticalityBreakdownTreeWidget, DualRingStat, NestedCategoryTableSkeleton, TransactionList } from '@/features/transactions'
+import { useTransactions, useCriticalitySummaries, CriticalityBreakdownTreeWidget, DualRingStat, NestedCategoryTable, TransactionList } from '@/features/transactions'
 import { useProjectedTransactions, ProjectedTransactionList } from '@/features/projectedTransactions'
 import { useProfileStore } from '../store/useProfileStore'
 import { useStatementPeriodStore } from '../store/useStatementPeriodStore'
@@ -57,7 +57,7 @@ export const DashboardPage = () => {
                     essential={criticalityDetails.summaries.essential}
                     nonessential={criticalityDetails.summaries.nonessential}
                   />
-                  <NestedCategoryTableSkeleton />
+                  <NestedCategoryTable />
                 </>
               )}
             </div>

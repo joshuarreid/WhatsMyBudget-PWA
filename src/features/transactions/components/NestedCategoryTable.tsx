@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
-import { flexRender, getCoreRowModel, getExpandedRowModel, useReactTable, type ColumnDef, type ExpandedState, type Row } from '@tanstack/react-table'
+import { flexRender, getCoreRowModel, getExpandedRowModel, useReactTable, type ColumnDef, type ExpandedState } from '@tanstack/react-table'
 
 type NestedTableRow = {
   id: string
   title: string
-  description?: string
+  total: number
   children?: NestedTableRow[]
 }
 
-type NestedCategoryTableSkeletonProps = {
+type NestedCategoryTableProps = {
   rows?: NestedTableRow[]
 }
 
@@ -16,24 +16,26 @@ const defaultRows: NestedTableRow[] = [
   {
     id: 'main-dish',
     title: 'Main dish',
-    description: 'This is a description for this category',
+    total: 79.83,
     children: [
-      { id: 'main-dish-rice', title: 'Rice' },
-      { id: 'main-dish-spaghetti', title: 'Spaghetti' },
-      { id: 'main-dish-swallow', title: 'Swallow' },
+      { id: 'main-dish-rice', title: 'Rice', total: 18.49 },
+      { id: 'main-dish-spaghetti', title: 'Spaghetti', total: 24.95 },
+      { id: 'main-dish-swallow', title: 'Swallow', total: 36.39 },
     ],
   },
   {
     id: 'beans',
     title: 'Beans',
-    description: 'This is a description for this category',
+    total: 52.17,
     children: [
-      { id: 'beans-village', title: 'Village beans' },
-      { id: 'beans-white', title: 'White beans' },
-      { id: 'beans-soya', title: 'Soya beans' },
+      { id: 'beans-village', title: 'Village beans', total: 17.48 },
+      { id: 'beans-white', title: 'White beans', total: 14.22 },
+      { id: 'beans-soya', title: 'Soya beans', total: 20.47 },
     ],
   },
 ]
+
+const formatCurrency = (value: number) => value.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
 
 const getDefaultExpandedState = (rows: NestedTableRow[]): ExpandedState => {
   const expanded: ExpandedState = {}
@@ -51,23 +53,9 @@ const getDefaultExpandedState = (rows: NestedTableRow[]): ExpandedState => {
   return expanded
 }
 
-const getBranchClassName = (row: Row<NestedTableRow>) => {
-  const parentRow = row.getParentRow()
-  const isLast = parentRow ? row.index === parentRow.subRows.length - 1 : false
-
-  return `tt-nested-branch ${isLast ? 'tt-nested-branch-last' : ''}`
-}
+const getRowClassName = (depth: number) => `tt-nested-row ${depth === 0 ? 'tt-nested-row-parent' : 'tt-nested-row-child'}`
 
 const columns: ColumnDef<NestedTableRow>[] = [
-  {
-    id: 'select',
-    header: () => <span className="sr-only">Select rows</span>,
-    cell: ({ row }) => {
-      if (row.depth > 0) return null
-
-      return <input type="checkbox" aria-label={`Select ${row.original.title}`} />
-    },
-  },
   {
     id: 'expand',
     header: () => <span className="sr-only">Expand rows</span>,
@@ -87,7 +75,7 @@ const columns: ColumnDef<NestedTableRow>[] = [
       }
 
       if (row.depth > 0) {
-        return <span aria-hidden className={getBranchClassName(row)} />
+        return <span aria-hidden className="tt-nested-indent" />
       }
 
       return null
@@ -102,28 +90,26 @@ const columns: ColumnDef<NestedTableRow>[] = [
     },
   },
   {
-    accessorKey: 'description',
-    header: 'Category description',
-    cell: ({ getValue }) => String(getValue() ?? ''),
+    accessorKey: 'total',
+    header: 'Total',
+    cell: ({ getValue }) => formatCurrency(Number(getValue() ?? 0)),
   },
 ]
 
 const getCellClassName = (columnId: string) => {
   switch (columnId) {
-    case 'select':
-      return 'tt-nested-checkbox-cell'
     case 'expand':
       return 'tt-nested-toggle-cell'
     case 'title':
       return 'tt-nested-title-cell'
-    case 'description':
-      return 'tt-nested-description-cell'
+    case 'total':
+      return 'tt-nested-total-cell'
     default:
       return undefined
   }
 }
 
-export const NestedCategoryTableSkeleton = ({ rows = defaultRows }: NestedCategoryTableSkeletonProps) => {
+export const NestedCategoryTable = ({ rows = defaultRows }: NestedCategoryTableProps) => {
   const initialExpanded = useMemo(() => getDefaultExpandedState(rows), [rows])
   const [expanded, setExpanded] = useState<ExpandedState>(initialExpanded)
 
@@ -161,7 +147,7 @@ export const NestedCategoryTableSkeleton = ({ rows = defaultRows }: NestedCatego
           {table.getRowModel().rows.map((row) => (
             <tr
               key={row.id}
-              className={`tt-nested-row ${row.depth === 0 ? 'tt-nested-row-parent' : 'tt-nested-row-child'}`}
+              className={getRowClassName(row.depth)}
               data-depth={row.depth}
             >
               {row.getVisibleCells().map((cell) => (
@@ -176,6 +162,9 @@ export const NestedCategoryTableSkeleton = ({ rows = defaultRows }: NestedCatego
     </div>
   )
 }
+
+
+
 
 
 

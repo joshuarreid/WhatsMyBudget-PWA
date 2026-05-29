@@ -510,10 +510,9 @@
     min-height: 480px;
     height: 480px;
     max-height: none;
-    overflow-y: auto;
+    overflow: auto;
     position: relative;
     width: 100%;
-    overflow-x: auto;
 }
 
 .tt-crit-table {
@@ -1045,13 +1044,8 @@ html, body, #root, .main-layout, .dashboard-page-root {
   border-bottom: none;
 }
 
-.tt-nested-checkbox-cell {
-  width: 36px;
-  text-align: center;
-}
-
 .tt-nested-toggle-cell {
-  width: 42px;
+  width: 64px;
   text-align: center;
 }
 
@@ -1060,21 +1054,25 @@ html, body, #root, .main-layout, .dashboard-page-root {
 }
 
 .tt-nested-row-child .tt-nested-title-cell {
-  padding-left: 2px;
+  padding-left: 8px;
+  color: var(--tt-color-accent);
 }
 
-.tt-nested-description-cell {
+.tt-nested-total-cell {
   color: var(--tt-color-muted);
+  text-align: right;
+  font-weight: 800;
 }
 
 .tt-nested-toggle {
-  width: 18px;
-  height: 18px;
+  width: 28px;
+  height: 28px;
   border-radius: 999px;
   border: 1px solid rgba(141, 176, 255, 0.45);
   background: rgba(141, 176, 255, 0.1);
   color: rgba(141, 176, 255, 0.98);
   font-weight: 900;
+  font-size: 1rem;
   line-height: 1;
   cursor: pointer;
   display: inline-flex;
@@ -1086,33 +1084,10 @@ html, body, #root, .main-layout, .dashboard-page-root {
   background: rgba(141, 176, 255, 0.18);
 }
 
-.tt-nested-branch {
-  position: relative;
+.tt-nested-indent {
   display: inline-block;
-  width: 18px;
-  height: 20px;
-}
-
-.tt-nested-branch::before {
-  content: '';
-  position: absolute;
-  left: 7px;
-  top: -10px;
-  bottom: -10px;
-  border-left: 1px solid rgba(141, 176, 255, 0.35);
-}
-
-.tt-nested-branch::after {
-  content: '';
-  position: absolute;
-  left: 7px;
-  top: 10px;
-  width: 11px;
-  border-top: 1px solid rgba(141, 176, 255, 0.45);
-}
-
-.tt-nested-branch-last::before {
-  bottom: 10px;
+  width: 28px;
+  height: 28px;
 }
 
 @media (max-width: 640px) {
