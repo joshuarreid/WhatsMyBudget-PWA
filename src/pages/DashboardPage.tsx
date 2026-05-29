@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { MainLayout } from '../layouts/MainLayout'
-import { useTransactions, useCriticalitySummaries, CriticalitySummaryWidget, TransactionList } from '@/features/transactions'
+import { useTransactions, useCriticalitySummaries, CriticalitySummaryWidget, DualRingStat, TransactionList } from '@/features/transactions'
 import { useProjectedTransactions, ProjectedTransactionList } from '@/features/projectedTransactions'
 import { useProfileStore } from '../store/useProfileStore'
 import { useStatementPeriodStore } from '../store/useStatementPeriodStore'
@@ -52,17 +52,9 @@ export const DashboardPage = () => {
                 <p className="tt-error">Failed to load criticality summary.</p>
               )}
               {criticalityDetails && (
-                <CriticalitySummaryWidget
-                  account={selectedAccount}
-                  statementPeriod={selectedPeriod}
+                <DualRingStat
                   essential={criticalityDetails.summaries.essential}
                   nonessential={criticalityDetails.summaries.nonessential}
-                  essentialByCategory={criticalityDetails.essential.byCategory}
-                  nonessentialByCategory={criticalityDetails.nonessential.byCategory}
-                  essentialActual={criticalityDetails.essential.actual}
-                  essentialProjected={criticalityDetails.essential.projected}
-                  nonessentialActual={criticalityDetails.nonessential.actual}
-                  nonessentialProjected={criticalityDetails.nonessential.projected}
                 />
               )}
             </div>
@@ -78,6 +70,19 @@ export const DashboardPage = () => {
               )}
             </div>
           </div>
+          {selectedPeriod && criticalityDetails && (
+            <div className="tt-subcard">
+              <div className="tt-section-title">Criticality Breakdown</div>
+              <CriticalitySummaryWidget
+                essentialByCategory={criticalityDetails.essential.byCategory}
+                nonessentialByCategory={criticalityDetails.nonessential.byCategory}
+                essentialActual={criticalityDetails.essential.actual}
+                essentialProjected={criticalityDetails.essential.projected}
+                nonessentialActual={criticalityDetails.nonessential.actual}
+                nonessentialProjected={criticalityDetails.nonessential.projected}
+              />
+            </div>
+          )}
           <div className="tt-subcard">
             <div className="tt-section-title">Posted Transactions</div>
             {transactionsLoading && <p className="tt-empty">Loading transactions...</p>}
