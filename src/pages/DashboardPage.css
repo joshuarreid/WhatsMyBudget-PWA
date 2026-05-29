@@ -1083,6 +1083,26 @@ html, body, #root, .main-layout, .dashboard-page-root {
   text-align: right;
 }
 
+.tt-nested-table tfoot td {
+  background: rgba(255, 255, 255, 0.03);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: none;
+}
+
+.tt-nested-footer-row td {
+  font-weight: 900;
+  color: var(--tt-color-text);
+}
+
+.tt-nested-footer-label {
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.tt-nested-footer-total {
+  color: var(--tt-color-text);
+}
+
 .tt-nested-row-child .tt-nested-total-cell {
   color: rgba(245, 197, 66, 0.98);
 }

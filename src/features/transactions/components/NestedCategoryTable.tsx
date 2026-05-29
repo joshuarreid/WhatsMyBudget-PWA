@@ -85,6 +85,7 @@ const getCellClassName = (columnId: string) => {
 export const NestedCategoryTable = ({ rows = defaultRows }: NestedCategoryTableProps) => {
   const initialExpanded = useMemo(() => getDefaultExpandedState(rows), [rows])
   const [expanded, setExpanded] = useState<ExpandedState>(initialExpanded)
+  const overallTotal = useMemo(() => rows.reduce((sum, row) => sum + row.total, 0), [rows])
 
   useEffect(() => {
     setExpanded(initialExpanded)
@@ -154,6 +155,12 @@ export const NestedCategoryTable = ({ rows = defaultRows }: NestedCategoryTableP
             </tr>
           ))}
         </tbody>
+        <tfoot>
+          <tr className="tt-nested-footer-row">
+            <td className="tt-nested-footer-label">Total</td>
+            <td className="tt-nested-total-cell tt-nested-footer-total">{formatCurrency(overallTotal)}</td>
+          </tr>
+        </tfoot>
       </table>
     </div>
   )
