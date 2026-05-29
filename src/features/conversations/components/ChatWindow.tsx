@@ -179,17 +179,17 @@ export function ChatWindow() {
   // Default pills: Account shows placeholder; Period is blank until user selects.
   // (We intentionally do NOT default to the global selected statement period.)
 
+  const accountValueForApi: Account = (accountFilter || activeProfile) as Account
+
   const accountLabel = useMemo(() => {
-    if (!accountFilter) return 'Account'
-    if (accountFilter === 'josh') return 'Josh'
-    if (accountFilter === 'joint') return 'Joint'
-    if (accountFilter === 'anna') return 'Anna'
+    if (accountValueForApi === 'josh') return 'Josh'
+    if (accountValueForApi === 'joint') return 'Joint'
+    if (accountValueForApi === 'anna') return 'Anna'
     return 'Account'
-  }, [accountFilter])
+  }, [accountValueForApi])
 
   const periodLabel = useMemo(() => periodFilter || 'Period', [periodFilter])
 
-  const accountValueForApi: Account = (accountFilter || activeProfile) as Account
   const periodValueForApi: string | undefined = periodFilter || undefined
 
   const periodOptions = useMemo(() => {
@@ -255,7 +255,7 @@ export function ChatWindow() {
               <div className="chatFiltersRow" style={{ justifyContent: 'flex-start' }}>
                 <button
                   type="button"
-                  className={`chatFilterPill ${accountFilter ? 'chatFilterPillActive' : ''}`}
+                  className="chatFilterPill chatFilterPillActive"
                   onClick={() => setPicker('account')}
                 >
                   {accountLabel}
