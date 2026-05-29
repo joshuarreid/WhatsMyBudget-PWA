@@ -114,13 +114,6 @@ export function ChatWindow() {
     el.scrollTop = el.scrollHeight
   }, [messages.length])
 
-  const title = useMemo(() => 'Chat', [])
-
-  const startNewConversation = () => {
-    setConversationId(null)
-    setLiveMessages([])
-  }
-
   const renderRows = () => {
     const rows: React.ReactNode[] = []
     let lastDay: string | null = null
@@ -213,33 +206,6 @@ export function ChatWindow() {
   return (
     <>
       <div
-        className="chatPageTitle"
-        style={{ display: 'flex', alignItems: 'center', gap: 12 }}
-      >
-        <div style={{ flex: 1 }}>{title}</div>
-
-        <button
-          type="button"
-          onClick={startNewConversation}
-          aria-label="New conversation"
-          title="New conversation"
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            border: '1px solid rgba(255,255,255,0.12)',
-            background: 'rgba(255,255,255,0.06)',
-            color: '#e6eef8',
-            fontSize: 18,
-            fontWeight: 900,
-            cursor: 'pointer',
-          }}
-        >
-          +
-        </button>
-      </div>
-
-      <div
         ref={transcriptRef}
         className="chatTranscript"
         style={{
@@ -247,13 +213,6 @@ export function ChatWindow() {
             'calc(var(--bottom-nav-height) + var(--chat-input-max-height) + max(12px, env(safe-area-inset-bottom)))',
         }}
       >
-        {messages.length === 0 ? (
-          <div className="tt-card chatEmptyCard">
-            <div className="chatEmptyText">
-              Ask a question about your spending, categories, or statement period.
-            </div>
-          </div>
-        ) : null}
 
         {renderRows()}
       </div>

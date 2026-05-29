@@ -3,7 +3,7 @@
   grid-template-rows: auto 1fr;
   gap: 12px;
   /* Fill available viewport, accounting for sticky header/dropdown + main padding. */
-  min-height: calc(100vh - 44px - 44px - 2rem);
+  min-height: calc(100vh - 56px - 44px - 2rem);
   min-height: 0;
 }
 
@@ -15,7 +15,7 @@
 
   /* Match the sticky statement period bar styling */
   position: sticky;
-  top: 44px;
+  top: 56px;
   z-index: 15;
   background: #181922;
 

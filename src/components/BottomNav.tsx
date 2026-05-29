@@ -1,7 +1,7 @@
 import React from 'react' // Ensure React types are imported for JSX namespace
 import { useCurrentRoute, useNavigate } from '../pages/router'
 
-type NavRoute = '/' | '/spending-averages' | '/chat'
+type NavRoute = '/' | '/spending-averages'
 
 type NavItem = {
   route: NavRoute
@@ -60,60 +60,19 @@ const PieIcon = ({ active }: { active: boolean }) => {
   )
 }
 
-const ChatIcon = ({ active }: { active: boolean }) => {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <path
-        d="M7 18.5 3.5 21V6a2 2 0 0 1 2-2H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H7Z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-        opacity={active ? 1 : 0.9}
-      />
-      <path
-        d="M8 9h9"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        opacity={active ? 1 : 0.9}
-      />
-      <path
-        d="M8 13h6"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        opacity={active ? 1 : 0.9}
-      />
-    </svg>
-  )
-}
-
 export const BottomNav = () => {
   const route = useCurrentRoute()
   const navigate = useNavigate()
 
   // Only show on authed pages
   const current: NavRoute =
-    route === '/spending-averages' ? '/spending-averages' : route === '/chat' ? '/chat' : '/'
+    route === '/spending-averages' ? '/spending-averages' : '/'
 
   const items: NavItem[] = [
     {
       route: '/',
       label: 'Home',
       icon: (active) => <HomeIcon active={active} />,
-    },
-    {
-      route: '/chat',
-      label: 'Chat',
-      icon: (active) => <ChatIcon active={active} />,
     },
     {
       route: '/spending-averages',
