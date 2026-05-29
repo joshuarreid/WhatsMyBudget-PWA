@@ -1,5 +1,5 @@
 export * from './CriticalitySummaryWidget';
-export * from './CriticalitySummarySectionedWidget';
+export * from './CriticalityBreakdownTreeWidget';
 export * from './DualRingStat';
 export * from './TransactionList';
 

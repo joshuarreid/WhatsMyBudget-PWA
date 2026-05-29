@@ -439,5 +439,4 @@ export const CriticalityBreakdownTreeWidget = (props: {
   )
 }
 
-// Backward-compatible export while call sites migrate to the clearer name.
-export { CriticalityBreakdownTreeWidget as CriticalitySummarySectionedWidget }
+
