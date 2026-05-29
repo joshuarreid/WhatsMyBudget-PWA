@@ -1,48 +1,49 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Modal } from '@/components/Modal'
+import { config } from '@/config/env'
+import { useCreateProjectedTransaction, useDeleteProjectedTransaction } from '@/features/projectedTransactions'
+import type { ProjectedTransaction } from '@/features/projectedTransactions/api/projectedTransactions.types.ts'
+import { statementPeriodToLastDayInputDate } from '@/utils/statementPeriod'
 import { flexRender, getCoreRowModel, getExpandedRowModel, useReactTable, type ColumnDef, type ExpandedState } from '@tanstack/react-table'
 
-type NestedTableRow = {
+type CategoryRow = {
+  kind: 'category'
+  id: string
+  category: string
+  title: string
+  total: number
+  children: ProjectedTransactionRow[]
+}
+
+type ProjectedTransactionRow = {
+  kind: 'projected-transaction'
   id: string
   title: string
   total: number
-  children?: NestedTableRow[]
+  category: string
+  projectedTransactionId?: string
 }
 
+type NestedTableRow = CategoryRow | ProjectedTransactionRow
+
 type NestedCategoryTableProps = {
-  rows?: NestedTableRow[]
+  account?: string
+  statementPeriod?: string
+  transactions?: ProjectedTransaction[]
 }
 
 type AddSubrowFormState = {
-  parentId: string
+  category: string
   title: string
   total: string
 }
 
-const defaultRows: NestedTableRow[] = [
-  {
-    id: 'main-dish',
-    title: 'Main dish',
-    total: 79.83,
-    children: [
-      { id: 'main-dish-rice', title: 'Rice', total: 18.49 },
-      { id: 'main-dish-spaghetti', title: 'Spaghetti', total: 24.95 },
-      { id: 'main-dish-swallow', title: 'Swallow', total: 36.39 },
-    ],
-  },
-  {
-    id: 'beans',
-    title: 'Beans',
-    total: 52.17,
-    children: [
-      { id: 'beans-village', title: 'Village beans', total: 17.48 },
-      { id: 'beans-white', title: 'White beans', total: 14.22 },
-      { id: 'beans-soya', title: 'Soya beans', total: 20.47 },
-    ],
-  },
-]
-
 const formatCurrency = (value: number) => value.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
+
+const normalizeCategory = (value: unknown) => String(value ?? 'Uncategorized').trim() || 'Uncategorized'
+
+const toProjectedTransactionTitle = (transaction: ProjectedTransaction) =>
+  transaction.description?.trim() || transaction.name?.trim() || 'Projected transaction'
 
 const normalizeCurrencyInput = (raw: string) => {
   let s = raw.replace(/[^0-9.\-]/g, '')
@@ -77,35 +78,51 @@ const parseCurrencyAmount = (value: string) => {
   return Number.isFinite(num) ? num : NaN
 }
 
-const normalizeRows = (items: NestedTableRow[]): NestedTableRow[] => {
-  return items.map((item) => {
-    const children = item.children ? normalizeRows(item.children) : item.children
-    const total = children?.length ? children.reduce((sum, child) => sum + child.total, 0) : item.total
+const buildCategoryRows = (transactions: ProjectedTransaction[]): CategoryRow[] => {
+  const grouped = new Map<string, ProjectedTransactionRow[]>()
 
-    return {
-      ...item,
-      total,
+  for (const transaction of transactions) {
+    const category = normalizeCategory(transaction.category)
+    const rows = grouped.get(category) ?? []
+    rows.push({
+      kind: 'projected-transaction',
+      id: transaction.id != null ? `projected-${transaction.id}` : `${category}-${rows.length}-${transaction.projectedDate ?? transaction.projectedTransactionDate ?? ''}`,
+      title: toProjectedTransactionTitle(transaction),
+      total: Number(transaction.amount) || 0,
+      category,
+      projectedTransactionId: transaction.id != null ? String(transaction.id) : undefined,
+    })
+    grouped.set(category, rows)
+  }
+
+  return Array.from(grouped.entries())
+    .map<CategoryRow>(([category, children]) => ({
+      kind: 'category',
+      id: category,
+      category,
+      title: category,
+      total: children.reduce((sum, child) => sum + child.total, 0),
       children,
-    }
-  })
+    }))
+    .sort((a, b) => {
+      if (b.total !== a.total) return b.total - a.total
+      return a.category.localeCompare(b.category)
+    })
 }
 
-const buildDefaultAddSubrowForm = (rows: NestedTableRow[]): AddSubrowFormState => ({
-  parentId: rows[0]?.id ?? '',
+const buildDefaultAddSubrowForm = (categories: string[]): AddSubrowFormState => ({
+  category: categories[0] ?? '',
   title: '',
   total: '',
 })
 
-const buildSubrowId = (parentId: string) => `${parentId}-subrow-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-
-const getDefaultExpandedState = (rows: NestedTableRow[]): ExpandedState => {
+const getDefaultExpandedState = (rows: CategoryRow[]): ExpandedState => {
   const expanded: ExpandedState = {}
 
-  const visit = (items: NestedTableRow[]) => {
+  const visit = (items: CategoryRow[]) => {
     for (const item of items) {
-      if (item.children?.length) {
+      if (item.children.length) {
         expanded[item.id] = true
-        visit(item.children)
       }
     }
   }
@@ -150,18 +167,22 @@ const PlusSquareIcon = () => (
   </svg>
 )
 
-export const NestedCategoryTable = ({ rows = defaultRows }: NestedCategoryTableProps) => {
-  const normalizedRows = useMemo(() => normalizeRows(rows), [rows])
-  const parentOptions = useMemo(() => normalizedRows.map((row) => ({ id: row.id, title: row.title })), [normalizedRows])
-  const initialExpanded = useMemo(() => getDefaultExpandedState(normalizedRows), [normalizedRows])
-  const [tableRows, setTableRows] = useState<NestedTableRow[]>(normalizedRows)
+export const NestedCategoryTable = ({ account, statementPeriod, transactions = [] }: NestedCategoryTableProps) => {
+  const createMutation = useCreateProjectedTransaction()
+  const deleteMutation = useDeleteProjectedTransaction()
+  const categoryRows = useMemo(() => buildCategoryRows(transactions), [transactions])
+  const availableCategories = useMemo(() => {
+    const configured = config.categories.map(normalizeCategory)
+    return configured.length > 0 ? configured : categoryRows.map((row) => row.category)
+  }, [categoryRows])
+  const initialExpanded = useMemo(() => getDefaultExpandedState(categoryRows), [categoryRows])
   const [expanded, setExpanded] = useState<ExpandedState>(initialExpanded)
   const [editMode, setEditMode] = useState(false)
   const [selectedSubrowIds, setSelectedSubrowIds] = useState<string[]>([])
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  const [addForm, setAddForm] = useState<AddSubrowFormState>(() => buildDefaultAddSubrowForm(normalizedRows))
+  const [addForm, setAddForm] = useState<AddSubrowFormState>(() => buildDefaultAddSubrowForm(availableCategories))
   const [addError, setAddError] = useState<string | null>(null)
-  const overallTotal = useMemo(() => tableRows.reduce((sum, row) => sum + row.total, 0), [tableRows])
+  const overallTotal = useMemo(() => categoryRows.reduce((sum, row) => sum + row.total, 0), [categoryRows])
   const selectedSubrowSet = useMemo(() => new Set(selectedSubrowIds), [selectedSubrowIds])
 
   const columns = useMemo<ColumnDef<NestedTableRow>[]>(() => [
@@ -170,8 +191,9 @@ export const NestedCategoryTable = ({ rows = defaultRows }: NestedCategoryTableP
       header: 'Category',
       cell: ({ row, getValue }) => {
         const title = String(getValue() ?? '')
+        const original = row.original
 
-        if (row.depth === 0) {
+        if (original.kind === 'category') {
           return <strong>{title}</strong>
         }
 
@@ -184,11 +206,14 @@ export const NestedCategoryTable = ({ rows = defaultRows }: NestedCategoryTableP
               <input
                 type="checkbox"
                 className="tt-nested-subrow-checkbox"
-                checked={selectedSubrowSet.has(row.id)}
+                checked={Boolean(original.projectedTransactionId && selectedSubrowSet.has(original.projectedTransactionId))}
+                disabled={!original.projectedTransactionId || deleteMutation.isPending}
                 onChange={(event) => {
                   const checked = event.target.checked
+                  const nextId = original.projectedTransactionId
+                  if (!nextId) return
                   setSelectedSubrowIds((current) =>
-                    checked ? [...current, row.id] : current.filter((id) => id !== row.id)
+                    checked ? [...current, nextId] : current.filter((id) => id !== nextId)
                   )
                 }}
               />
@@ -203,26 +228,25 @@ export const NestedCategoryTable = ({ rows = defaultRows }: NestedCategoryTableP
       header: 'Total',
       cell: ({ getValue }) => formatCurrency(Number(getValue() ?? 0)),
     },
-  ], [editMode, selectedSubrowSet])
+  ], [deleteMutation.isPending, editMode, selectedSubrowSet])
 
   useEffect(() => {
-    setTableRows(normalizedRows)
     setExpanded(initialExpanded)
     setEditMode(false)
     setSelectedSubrowIds([])
     setIsAddModalOpen(false)
     setAddError(null)
-    setAddForm(buildDefaultAddSubrowForm(normalizedRows))
-  }, [initialExpanded, normalizedRows])
+    setAddForm(buildDefaultAddSubrowForm(availableCategories))
+  }, [availableCategories, initialExpanded])
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
-    data: tableRows,
+    data: categoryRows,
     columns,
     state: { expanded },
     onExpandedChange: setExpanded,
     getRowId: (row) => row.id,
-    getSubRows: (row) => row.children,
+    getSubRows: (row) => (row.kind === 'category' ? row.children : undefined),
     getCoreRowModel: getCoreRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
   })
@@ -241,35 +265,37 @@ export const NestedCategoryTable = ({ rows = defaultRows }: NestedCategoryTableP
   const toggleEditMode = () => {
     setEditMode((current) => {
       const next = !current
-      if (!next) setSelectedSubrowIds([])
+      if (next) {
+        setExpanded(getDefaultExpandedState(categoryRows))
+      } else {
+        setSelectedSubrowIds([])
+      }
       return next
     })
   }
 
-  const deleteSelectedSubrows = () => {
+  const deleteSelectedSubrows = async () => {
     if (selectedSubrowIds.length === 0) return
 
     const ok = window.confirm(`Delete ${selectedSubrowIds.length} selected subrow${selectedSubrowIds.length === 1 ? '' : 's'}?`)
     if (!ok) return
 
-    const selected = new Set(selectedSubrowIds)
-    setTableRows((current) => normalizeRows(
-      current.map((parent) => ({
-        ...parent,
-        children: parent.children?.filter((child) => !selected.has(child.id)) ?? [],
-      }))
-    ))
-    setSelectedSubrowIds([])
-    setEditMode(false)
+    try {
+      await Promise.all(selectedSubrowIds.map((id) => deleteMutation.mutateAsync(id)))
+      setSelectedSubrowIds([])
+      setEditMode(false)
+    } catch {
+      // keep UI simple; query invalidation will refresh successful deletes
+    }
   }
 
   const openAddModal = () => {
     setAddError(null)
     setAddForm((current) => ({
-      ...buildDefaultAddSubrowForm(tableRows),
-      parentId: current.parentId && parentOptions.some((option) => option.id === current.parentId)
-        ? current.parentId
-        : tableRows[0]?.id ?? '',
+      ...buildDefaultAddSubrowForm(availableCategories),
+      category: current.category && availableCategories.includes(current.category)
+        ? current.category
+        : availableCategories[0] ?? '',
     }))
     setIsAddModalOpen(true)
   }
@@ -279,14 +305,24 @@ export const NestedCategoryTable = ({ rows = defaultRows }: NestedCategoryTableP
     setAddError(null)
   }
 
-  const handleAddSubrow = (event: React.FormEvent) => {
+  const handleAddSubrow = async (event: React.FormEvent) => {
     event.preventDefault()
     setAddError(null)
 
     const normalizedAmount = formatCurrencyForInput(normalizeCurrencyInput(addForm.total))
     const amount = parseCurrencyAmount(normalizedAmount)
 
-    if (!addForm.parentId) {
+    if (!account?.trim()) {
+      setAddError('Account is required.')
+      return
+    }
+
+    if (!statementPeriod?.trim()) {
+      setAddError('Statement period is required.')
+      return
+    }
+
+    if (!addForm.category) {
       setAddError('Please choose a parent category.')
       return
     }
@@ -301,30 +337,29 @@ export const NestedCategoryTable = ({ rows = defaultRows }: NestedCategoryTableP
       return
     }
 
-    setTableRows((current) => normalizeRows(
-      current.map((parent) => {
-        if (parent.id !== addForm.parentId) return parent
+    const category = normalizeCategory(addForm.category)
 
-        return {
-          ...parent,
-          children: [
-            ...(parent.children ?? []),
-            {
-              id: buildSubrowId(parent.id),
-              title: addForm.title.trim(),
-              total: amount,
-            },
-          ],
-        }
+    try {
+      await createMutation.mutateAsync({
+        account: account.trim(),
+        statementPeriod: statementPeriod.trim(),
+        category,
+        criticality: config.defaultCriticalityMap[category] || 'Nonessential',
+        paymentMethod: config.defaultPaymentMethodMap[account] || '',
+        amount,
+        name: addForm.title.trim(),
+        description: undefined,
+        projectedDate: statementPeriodToLastDayInputDate(statementPeriod),
       })
-    ))
-
-    setExpanded((current) => ({
-      ...(current === true ? {} : current),
-      [addForm.parentId]: true,
-    }))
-    setIsAddModalOpen(false)
-    setAddForm(buildDefaultAddSubrowForm(tableRows))
+      setExpanded((current) => ({
+        ...(current === true ? {} : current),
+        [category]: true,
+      }))
+      setIsAddModalOpen(false)
+      setAddForm(buildDefaultAddSubrowForm(availableCategories))
+    } catch (error) {
+      setAddError(error instanceof Error ? error.message : 'Failed to add projected transaction.')
+    }
   }
 
   return (
@@ -346,7 +381,7 @@ export const NestedCategoryTable = ({ rows = defaultRows }: NestedCategoryTableP
             aria-label="Delete selected subrows"
             title="Delete selected subrows"
             onClick={deleteSelectedSubrows}
-            disabled={!editMode || selectedSubrowIds.length === 0}
+            disabled={!editMode || selectedSubrowIds.length === 0 || deleteMutation.isPending}
           >
             <TrashIcon />
           </button>
@@ -356,7 +391,7 @@ export const NestedCategoryTable = ({ rows = defaultRows }: NestedCategoryTableP
             aria-label="Add subrow"
             title="Add subrow"
             onClick={openAddModal}
-            disabled={parentOptions.length === 0}
+            disabled={availableCategories.length === 0 || createMutation.isPending || !account || !statementPeriod}
           >
             <PlusSquareIcon />
           </button>
@@ -418,13 +453,13 @@ export const NestedCategoryTable = ({ rows = defaultRows }: NestedCategoryTableP
               <span className="tt-proj-label">Parent category *</span>
               <select
                 className="tt-proj-input"
-                value={addForm.parentId}
-                onChange={(event) => setAddForm((current) => ({ ...current, parentId: event.target.value }))}
+                value={addForm.category}
+                onChange={(event) => setAddForm((current) => ({ ...current, category: event.target.value }))}
                 required
               >
-                {parentOptions.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.title}
+                {availableCategories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
                   </option>
                 ))}
               </select>
@@ -471,8 +506,8 @@ export const NestedCategoryTable = ({ rows = defaultRows }: NestedCategoryTableP
             <button type="button" className="tt-proj-secondary" onClick={closeAddModal}>
               Cancel
             </button>
-            <button type="submit" className="tt-proj-primary" disabled={parentOptions.length === 0}>
-              Add subrow
+            <button type="submit" className="tt-proj-primary" disabled={availableCategories.length === 0 || createMutation.isPending}>
+              {createMutation.isPending ? 'Adding…' : 'Add subrow'}
             </button>
           </div>
         </form>

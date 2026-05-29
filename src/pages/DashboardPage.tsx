@@ -57,7 +57,11 @@ export const DashboardPage = () => {
                     essential={criticalityDetails.summaries.essential}
                     nonessential={criticalityDetails.summaries.nonessential}
                   />
-                  <NestedCategoryTable />
+                  <NestedCategoryTable
+                    account={selectedAccount}
+                    statementPeriod={selectedPeriod}
+                    transactions={sortedProjectedTransactions}
+                  />
                 </>
               )}
             </div>
