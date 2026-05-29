@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { MainLayout } from '../layouts/MainLayout'
-import { useTransactions, useCriticalitySummaries, CriticalitySummaryWidget, DualRingStat, TransactionList } from '@/features/transactions'
+import { useTransactions, useCriticalitySummaries, CriticalitySummarySectionedWidget, DualRingStat, TransactionList } from '@/features/transactions'
 import { useProjectedTransactions, ProjectedTransactionList } from '@/features/projectedTransactions'
 import { useProfileStore } from '../store/useProfileStore'
 import { useStatementPeriodStore } from '../store/useStatementPeriodStore'
@@ -73,12 +73,12 @@ export const DashboardPage = () => {
           {selectedPeriod && criticalityDetails && (
             <div className="tt-subcard">
               <div className="tt-section-title">Criticality Breakdown</div>
-              <CriticalitySummaryWidget
+              <CriticalitySummarySectionedWidget
+                account={selectedAccount}
+                statementPeriod={selectedPeriod}
                 essentialByCategory={criticalityDetails.essential.byCategory}
                 nonessentialByCategory={criticalityDetails.nonessential.byCategory}
-                essentialActual={criticalityDetails.essential.actual}
                 essentialProjected={criticalityDetails.essential.projected}
-                nonessentialActual={criticalityDetails.nonessential.actual}
                 nonessentialProjected={criticalityDetails.nonessential.projected}
               />
             </div>
