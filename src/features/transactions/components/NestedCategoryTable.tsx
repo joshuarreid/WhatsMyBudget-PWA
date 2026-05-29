@@ -430,16 +430,18 @@ export const NestedCategoryTable = ({ account, statementPeriod, actualTransactio
           >
             <PencilIcon />
           </button>
-          <button
-            type="button"
-            className="tt-nested-toolbar-button tt-nested-toolbar-button-danger"
-            aria-label="Delete selected subrows"
-            title="Delete selected subrows"
-            onClick={deleteSelectedSubrows}
-            disabled={!editMode || selectedSubrowIds.length === 0 || deleteMutation.isPending}
-          >
-            <TrashIcon />
-          </button>
+          {editMode && (
+            <button
+              type="button"
+              className="tt-nested-toolbar-button tt-nested-toolbar-button-danger"
+              aria-label="Delete selected subrows"
+              title="Delete selected subrows"
+              onClick={deleteSelectedSubrows}
+              disabled={selectedSubrowIds.length === 0 || deleteMutation.isPending}
+            >
+              <TrashIcon />
+            </button>
+          )}
           <button
             type="button"
             className="tt-nested-toolbar-button"
