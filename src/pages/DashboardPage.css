@@ -1150,6 +1150,18 @@ html, body, #root, .main-layout, .dashboard-page-root {
   width: 100%;
 }
 
+.tt-nested-subrow-open {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
 .tt-nested-subrow-label-edit {
   display: grid;
   grid-template-columns: 16px minmax(0, 1fr);
