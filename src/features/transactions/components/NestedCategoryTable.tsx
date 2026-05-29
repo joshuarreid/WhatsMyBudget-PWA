@@ -58,7 +58,7 @@ const getRowClassName = (depth: number) => `tt-nested-row ${depth === 0 ? 'tt-ne
 const columns: ColumnDef<NestedTableRow>[] = [
   {
     accessorKey: 'title',
-    header: 'Category Title',
+    header: 'Category',
     cell: ({ row, getValue }) => {
       const title = String(getValue() ?? '')
       return row.depth === 0 ? <strong>{title}</strong> : title
