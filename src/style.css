@@ -6,8 +6,12 @@
 
 html,
 body {
+  width: 100%;
+  max-width: 100%;
   height: 100%;
   background: #0f1115;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 body {
@@ -17,6 +21,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: #0f1115;
+  overflow-x: hidden;
+  touch-action: pan-y;
 }
 
 button {
@@ -186,8 +192,9 @@ code {
 }
 
 #app {
-  width: 1126px;
+  width: 100%;
   max-width: 100%;
+  height: 100dvh;
   margin: 0 auto;
   text-align: center;
   border-inline: 1px solid var(--border);
@@ -196,6 +203,7 @@ code {
   flex-direction: column;
   box-sizing: border-box;
   background: #0f1115;
+  overflow: hidden;
 }
 
 #center {

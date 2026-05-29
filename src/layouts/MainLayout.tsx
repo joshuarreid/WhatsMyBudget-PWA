@@ -89,8 +89,12 @@ export const MainLayout = ({ children, hideStatementPeriodChooser }: MainLayoutP
   return (
     <div
       style={{
-        minHeight: '100vh',
+        height: '100%',
+        minHeight: '100dvh',
         background: 'linear-gradient(180deg, #0f1115, #151516)',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
       }}
     >
       <Header authed={authed} logout={logout} />
@@ -102,6 +106,13 @@ export const MainLayout = ({ children, hideStatementPeriodChooser }: MainLayoutP
           maxWidth: '1200px',
           margin: '0 auto',
           paddingTop: 0,
+          width: '100%',
+          flex: '1 1 auto',
+          minHeight: 0,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          overscrollBehavior: 'contain',
+          WebkitOverflowScrolling: 'touch',
         }}
       >
         {children}
