@@ -210,15 +210,14 @@ export function ChatWindow() {
         className="chatTranscript"
         style={{
           paddingBottom:
-            'calc(var(--bottom-nav-height) + var(--chat-input-max-height) + max(12px, env(safe-area-inset-bottom)))',
+            'calc(var(--chat-input-max-height) + max(12px, env(safe-area-inset-bottom)))',
         }}
       >
 
         {renderRows()}
       </div>
 
-      {/* Fixed footer: ChatInput stays static above the BottomNav */}
-      <div className="chatFixedFooter" style={{ bottom: 'var(--bottom-nav-height)' }}>
+      <div className="chatFixedFooter" style={{ bottom: 0 }}>
         <div className="chatFixedFooterInner">
           <ChatInput
             conversationId={conversationId}
