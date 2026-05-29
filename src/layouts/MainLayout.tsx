@@ -136,8 +136,10 @@ const Header = ({ authed }: { authed: boolean }) => {
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.45rem',
-              padding: '10px 14px',
+              justifyContent: 'center',
+              padding: '10px',
+              width: '42px',
+              height: '42px',
               borderRadius: '999px',
               border: `1px solid ${chatActive ? 'rgba(141, 176, 255, 0.36)' : 'rgba(255, 255, 255, 0.12)'}`,
               background: chatActive ? 'rgba(141, 176, 255, 0.12)' : 'rgba(255, 255, 255, 0.02)',
@@ -149,7 +151,6 @@ const Header = ({ authed }: { authed: boolean }) => {
             }}
           >
             <ChatIcon active={chatActive} />
-            <span>Chat</span>
           </button>
         ) : null}
       </div>

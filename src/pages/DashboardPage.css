@@ -638,7 +638,7 @@
 
 .tt-modal-header {
   display: grid;
-  grid-template-columns: 48px 1fr 48px;
+  grid-template-columns: minmax(48px, auto) minmax(0, 1fr) minmax(48px, auto);
   align-items: center;
   gap: 12px;
   padding: 12px 14px;
@@ -654,6 +654,7 @@
 .tt-modal-title {
   font-weight: 950;
   text-align: center;
+  min-width: 0;
 }
 
 .tt-modal-right {
@@ -661,6 +662,7 @@
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
+  min-width: fit-content;
 }
 
 .tt-modal-back {
@@ -1491,17 +1493,33 @@ html, body, #root, .main-layout, .dashboard-page-root {
   display: flex;
   gap: 10px;
   justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .tt-proj-primary,
 .tt-proj-secondary {
   padding: 10px 12px;
+  min-height: 42px;
+  min-width: 96px;
   border-radius: 12px;
   font-weight: 950;
   cursor: pointer;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.03);
   color: var(--tt-color-text);
+  flex: 0 0 auto;
+}
+
+@media (max-width: 520px) {
+  .tt-proj-form-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tt-proj-primary,
+  .tt-proj-secondary {
+    width: 100%;
+  }
 }
 
 .tt-proj-primary {
