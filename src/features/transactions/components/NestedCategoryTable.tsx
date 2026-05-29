@@ -688,7 +688,7 @@ export const NestedCategoryTable = ({ account, statementPeriod, actualTransactio
                   : row.original.kind === 'category'
                     ? () => openCategoryModal(row.original.category)
                     : canOpenChildRow
-                      ? () => openChildRow(row.original)
+                      ? () => openChildRow(row.original as ProjectedTransactionRow | TransactionsSummaryRow)
                       : undefined}
                 onKeyDown={row.getCanExpand()
                   ? (event) => {
@@ -708,7 +708,7 @@ export const NestedCategoryTable = ({ account, statementPeriod, actualTransactio
                       ? (event) => {
                           if (event.key === 'Enter' || event.key === ' ') {
                             event.preventDefault()
-                            openChildRow(row.original)
+                            openChildRow(row.original as ProjectedTransactionRow | TransactionsSummaryRow)
                           }
                         }
                       : undefined}
