@@ -6,6 +6,7 @@ export const Modal = ({
   onClose,
   onBack,
   backLabel,
+  headerActions,
   children
 }: {
   isOpen: boolean
@@ -13,6 +14,7 @@ export const Modal = ({
   onClose: () => void
   onBack?: () => void
   backLabel?: string
+  headerActions?: ReactNode
   children: ReactNode
 }) => {
   useEffect(() => {
@@ -54,9 +56,12 @@ export const Modal = ({
 
           <div className="tt-modal-title">{title}</div>
 
-          <button type="button" className="tt-modal-close" onClick={onClose} aria-label="Close">
-            ✕
-          </button>
+          <div className="tt-modal-right">
+            {headerActions}
+            <button type="button" className="tt-modal-close" onClick={onClose} aria-label="Close">
+              ✕
+            </button>
+          </div>
         </div>
         <div className="tt-modal-body">{children}</div>
       </div>

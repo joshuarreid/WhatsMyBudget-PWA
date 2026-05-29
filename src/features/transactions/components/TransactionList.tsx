@@ -15,7 +15,7 @@ const formatDate = (value: string | undefined) => {
 
 export const TransactionList = ({ transactions }: TransactionListProps) => {
   if (transactions.length === 0) {
-    return null // Render nothing for empty state
+    return <div className="tt-empty">No Transactions. WE UP 🙌</div>
   }
 
   return (

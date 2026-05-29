@@ -588,6 +588,22 @@ export const NestedCategoryTable = ({ account, statementPeriod, actualTransactio
     setIsModalOpen(false)
   }
 
+  const deleteSelectedProjectedTransaction = async () => {
+    const id = selected?.id
+    if (mode !== 'edit' || id == null || busy) return
+
+    const ok = window.confirm('Delete this projected transaction?')
+    if (!ok) return
+
+    try {
+      await deleteMutation.mutateAsync(String(id))
+      setIsModalOpen(false)
+      setSelected(undefined)
+    } catch {
+      // keep UI simple; query invalidation will refresh successful deletes
+    }
+  }
+
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     setFormError(null)
@@ -745,7 +761,23 @@ export const NestedCategoryTable = ({ account, statementPeriod, actualTransactio
         </tfoot>
       </table>
 
-      <Modal isOpen={isModalOpen} title={modalTitle} onClose={closeModal}>
+      <Modal
+        isOpen={isModalOpen}
+        title={modalTitle}
+        onClose={closeModal}
+        headerActions={mode === 'edit' ? (
+          <button
+            type="button"
+            className="tt-modal-icon-button tt-modal-icon-button-danger"
+            aria-label="Delete projected transaction"
+            title="Delete projected transaction"
+            onClick={deleteSelectedProjectedTransaction}
+            disabled={busy || !selected?.id}
+          >
+            <TrashIcon />
+          </button>
+        ) : undefined}
+      >
         <form className="tt-proj-form" onSubmit={onSubmit}>
           {formError && <div className="tt-error">{formError}</div>}
 

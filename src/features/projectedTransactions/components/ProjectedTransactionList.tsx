@@ -63,6 +63,15 @@ const parseCurrencyAmount = (value: string) => {
   return Number.isFinite(num) ? num : NaN
 }
 
+const TrashIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M5 7h14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M9 7V5.8c0-.44.36-.8.8-.8h4.4c.44 0 .8.36.8.8V7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M8 7v10.2c0 .99.81 1.8 1.8 1.8h4.4c.99 0 1.8-.81 1.8-1.8V7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M10.5 10.5v5M13.5 10.5v5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+
 type FormState = {
   id?: number
   name: string
@@ -249,6 +258,10 @@ export const ProjectedTransactionList = ({ transactions }: ProjectedTransactionL
 
     try {
       await deleteMutation.mutateAsync(String(id))
+      if (selected?.id === id) {
+        setIsModalOpen(false)
+        setSelected(undefined)
+      }
     } catch {
       // mutation error already tracked by react-query; keep UI simple
     }
@@ -301,7 +314,27 @@ export const ProjectedTransactionList = ({ transactions }: ProjectedTransactionL
           )
         })}
 
-      <Modal isOpen={isModalOpen} title={modalTitle} onClose={closeModal}>
+      <Modal
+        isOpen={isModalOpen}
+        title={modalTitle}
+        onClose={closeModal}
+        headerActions={mode === 'edit' ? (
+          <button
+            type="button"
+            className="tt-modal-icon-button tt-modal-icon-button-danger"
+            aria-label="Delete projected transaction"
+            title="Delete projected transaction"
+            onClick={() => {
+              if (selected) {
+                void onDelete(selected)
+              }
+            }}
+            disabled={busy || !selected?.id}
+          >
+            <TrashIcon />
+          </button>
+        ) : undefined}
+      >
         <form className="tt-proj-form" onSubmit={onSubmit}>
           {formError && <div className="tt-error">{formError}</div>}
 

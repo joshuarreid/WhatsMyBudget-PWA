@@ -656,6 +656,13 @@
   text-align: center;
 }
 
+.tt-modal-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .tt-modal-back {
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.03);
@@ -687,6 +694,42 @@
 
 .tt-modal-close:hover {
     background: rgba(255, 255, 255, 0.06);
+}
+
+.tt-modal-icon-button {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--tt-color-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.tt-modal-icon-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.tt-modal-icon-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tt-modal-icon-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.tt-modal-icon-button-danger {
+  color: rgba(255, 138, 138, 0.98);
+  border-color: rgba(255, 138, 138, 0.24);
+}
+
+.tt-modal-icon-button-danger:hover:not(:disabled) {
+  background: rgba(255, 138, 138, 0.10);
 }
 
 .tt-modal-body {
