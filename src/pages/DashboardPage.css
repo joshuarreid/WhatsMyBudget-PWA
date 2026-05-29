@@ -1222,13 +1222,13 @@ html, body, #root, .main-layout, .dashboard-page-root {
   color: rgba(245, 197, 66, 0.98);
 }
 
-.tt-nested-row-parent .tt-nested-title-cell strong {
+.tt-nested-row-expandable .tt-nested-title-cell strong {
   display: inline-flex;
   align-items: center;
   gap: 10px;
 }
 
-.tt-nested-row-parent .tt-nested-title-cell strong::after {
+.tt-nested-row-expandable .tt-nested-title-cell strong::after {
   content: '';
   width: 8px;
   height: 8px;
@@ -1239,7 +1239,7 @@ html, body, #root, .main-layout, .dashboard-page-root {
   transition: transform 140ms ease;
 }
 
-.tt-nested-row-parent[aria-expanded='false'] .tt-nested-title-cell strong::after {
+.tt-nested-row-expandable[aria-expanded='false'] .tt-nested-title-cell strong::after {
   transform: rotate(-45deg) translateY(1px);
 }
 
