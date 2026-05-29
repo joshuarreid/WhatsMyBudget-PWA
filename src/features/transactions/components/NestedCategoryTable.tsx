@@ -57,31 +57,6 @@ const getRowClassName = (depth: number) => `tt-nested-row ${depth === 0 ? 'tt-ne
 
 const columns: ColumnDef<NestedTableRow>[] = [
   {
-    id: 'expand',
-    header: () => <span className="sr-only">Expand rows</span>,
-    cell: ({ row }) => {
-      if (row.getCanExpand()) {
-        return (
-          <button
-            type="button"
-            className="tt-nested-toggle"
-            onClick={row.getToggleExpandedHandler()}
-            aria-expanded={row.getIsExpanded()}
-            aria-label={`${row.getIsExpanded() ? 'Collapse' : 'Expand'} ${row.original.title}`}
-          >
-            {row.getIsExpanded() ? '-' : '+'}
-          </button>
-        )
-      }
-
-      if (row.depth > 0) {
-        return <span aria-hidden className="tt-nested-indent" />
-      }
-
-      return null
-    },
-  },
-  {
     accessorKey: 'title',
     header: 'Category Title',
     cell: ({ row, getValue }) => {
@@ -98,8 +73,6 @@ const columns: ColumnDef<NestedTableRow>[] = [
 
 const getCellClassName = (columnId: string) => {
   switch (columnId) {
-    case 'expand':
-      return 'tt-nested-toggle-cell'
     case 'title':
       return 'tt-nested-title-cell'
     case 'total':
@@ -129,6 +102,17 @@ export const NestedCategoryTable = ({ rows = defaultRows }: NestedCategoryTableP
     getExpandedRowModel: getExpandedRowModel(),
   })
 
+  const toggleRow = (rowId: string) => {
+    setExpanded((current) => {
+      const expandedMap = current === true ? {} : current
+
+      return {
+        ...expandedMap,
+        [rowId]: !(expandedMap[rowId] ?? false),
+      }
+    })
+  }
+
   return (
     <div className="tt-nested-table-wrap" aria-label="Nested category table">
       <table className="tt-nested-table">
@@ -149,6 +133,18 @@ export const NestedCategoryTable = ({ rows = defaultRows }: NestedCategoryTableP
               key={row.id}
               className={getRowClassName(row.depth)}
               data-depth={row.depth}
+              onClick={row.getCanExpand() ? () => toggleRow(row.id) : undefined}
+              onKeyDown={row.getCanExpand()
+                ? (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      toggleRow(row.id)
+                    }
+                  }
+                : undefined}
+              tabIndex={row.getCanExpand() ? 0 : undefined}
+              role={row.getCanExpand() ? 'button' : undefined}
+              aria-expanded={row.getCanExpand() ? row.getIsExpanded() : undefined}
             >
               {row.getVisibleCells().map((cell) => (
                 <td key={cell.id} className={getCellClassName(cell.column.id)}>
