@@ -998,10 +998,37 @@ html, body, #root, .main-layout, .dashboard-page-root {
 
 .tt-nested-toolbar {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
   padding: 10px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   background: rgba(255, 255, 255, 0.015);
+}
+
+.tt-nested-toolbar-bulk-actions {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tt-nested-toolbar-text-button {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--tt-color-text);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.tt-nested-toolbar-text-button:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.tt-nested-toolbar-text-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .tt-nested-toolbar-actions {

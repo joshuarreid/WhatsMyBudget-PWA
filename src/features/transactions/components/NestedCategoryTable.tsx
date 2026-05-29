@@ -184,6 +184,12 @@ export const NestedCategoryTable = ({ account, statementPeriod, transactions = [
   const [addError, setAddError] = useState<string | null>(null)
   const overallTotal = useMemo(() => categoryRows.reduce((sum, row) => sum + row.total, 0), [categoryRows])
   const selectedSubrowSet = useMemo(() => new Set(selectedSubrowIds), [selectedSubrowIds])
+  const allRowsExpanded = useMemo(() => {
+    if (categoryRows.length === 0) return false
+    if (expanded === true) return true
+
+    return categoryRows.every((row) => Boolean(expanded[row.id]))
+  }, [categoryRows, expanded])
 
   const columns = useMemo<ColumnDef<NestedTableRow>[]>(() => [
     {
@@ -260,6 +266,17 @@ export const NestedCategoryTable = ({ account, statementPeriod, transactions = [
         [rowId]: !(expandedMap[rowId] ?? false),
       }
     })
+  }
+
+  const toggleAllRows = () => {
+    if (allRowsExpanded) {
+      setExpanded({})
+      setEditMode(false)
+      setSelectedSubrowIds([])
+      return
+    }
+
+    setExpanded(getDefaultExpandedState(categoryRows))
   }
 
   const toggleEditMode = () => {
@@ -365,6 +382,16 @@ export const NestedCategoryTable = ({ account, statementPeriod, transactions = [
   return (
     <div className="tt-nested-table-wrap" aria-label="Nested category table">
       <div className="tt-nested-toolbar">
+        <div className="tt-nested-toolbar-bulk-actions">
+          <button
+            type="button"
+            className="tt-nested-toolbar-text-button"
+            onClick={toggleAllRows}
+            disabled={categoryRows.length === 0}
+          >
+            {allRowsExpanded ? 'Collapse all' : 'Expand all'}
+          </button>
+        </div>
         <div className="tt-nested-toolbar-actions">
           <button
             type="button"
