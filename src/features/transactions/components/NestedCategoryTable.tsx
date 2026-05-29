@@ -53,6 +53,12 @@ type FormState = {
 
 const formatCurrency = (value: number) => value.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
 
+const formatDate = (value: string | undefined) => {
+  if (!value) return ''
+  const dt = new Date(value)
+  return Number.isFinite(dt.getTime()) ? dt.toLocaleDateString() : value
+}
+
 const normalizeCategory = (value: unknown) => String(value ?? 'Uncategorized').trim() || 'Uncategorized'
 
 const toProjectedTransactionTitle = (transaction: ProjectedTransaction) =>
@@ -119,6 +125,47 @@ const toApiPayload = (form: FormState): ProjectedTransaction => {
     criticality: form.criticality.trim(),
     paymentMethod: form.paymentMethod.trim(),
   }
+}
+
+type CategoryTxnItem = {
+  id?: string | number
+  date?: string
+  description?: string
+  amount: number
+}
+
+const TxnList = (props: {
+  title: string
+  variant: 'actual' | 'projected'
+  items: CategoryTxnItem[]
+}) => {
+  return (
+    <div className="tt-crit-txns-section">
+      <div className="tt-crit-txns-title">{props.title}</div>
+      {props.items.length === 0 ? (
+        <div className="tt-empty">None</div>
+      ) : (
+        <div className="tt-crit-txns-list">
+          {props.items.map((item, index) => {
+            const key = item.id ?? `${props.variant}-${index}`
+            return (
+              <div key={key} className={`tt-row tt-crit-txn-row ${props.variant === 'projected' ? 'tt-row-projected' : ''}`}>
+                <div className="tt-row-top">
+                  <strong className="tt-row-title">{item.description || 'Transaction'}</strong>
+                  <strong className={props.variant === 'projected' ? 'tt-crit-projected' : 'tt-crit-actual'}>
+                    {formatCurrency(item.amount)}
+                  </strong>
+                </div>
+                <div className="tt-row-meta">
+                  <div>{formatDate(item.date)}</div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
 }
 
 const coerceAmount = (value: unknown) => {
@@ -252,6 +299,8 @@ export const NestedCategoryTable = ({ account, statementPeriod, actualTransactio
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [mode, setMode] = useState<'create' | 'edit'>('create')
   const [selected, setSelected] = useState<ProjectedTransaction | undefined>(undefined)
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
   const [form, setForm] = useState<FormState>(() => toFormState())
   const [formError, setFormError] = useState<string | null>(null)
   const overallTotal = useMemo(() => categoryRows.reduce((sum, row) => sum + row.total, 0), [categoryRows])
@@ -271,6 +320,36 @@ export const NestedCategoryTable = ({ account, statementPeriod, actualTransactio
     if (!Number.isFinite(parseCurrencyAmount(form.amount))) return false
     return true
   }, [busy, form])
+
+  const selectedCategoryActualTxns = useMemo(() => {
+    if (!selectedCategory) return []
+    const cat = normalizeCategory(selectedCategory)
+
+    return actualTransactions
+      .filter((transaction) => normalizeCategory(transaction.category) === cat)
+      .map((transaction) => ({
+        id: transaction.id,
+        date: transaction.transactionDate,
+        description: transaction.description ?? transaction.name,
+        amount: Number(transaction.amount) || 0,
+      }))
+      .sort((a, b) => new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime())
+  }, [actualTransactions, selectedCategory])
+
+  const selectedCategoryProjectedTxns = useMemo(() => {
+    if (!selectedCategory) return []
+    const cat = normalizeCategory(selectedCategory)
+
+    return transactions
+      .filter((transaction) => normalizeCategory(transaction.category) === cat)
+      .map((transaction) => ({
+        id: transaction.id,
+        date: transaction.projectedDate ?? transaction.projectedTransactionDate,
+        description: transaction.description ?? transaction.name,
+        amount: Number(transaction.amount) || 0,
+      }))
+      .sort((a, b) => new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime())
+  }, [selectedCategory, transactions])
   const allRowsExpanded = useMemo(() => {
     if (expandableCategoryRows.length === 0) return false
     if (expanded === true) return true
@@ -320,6 +399,16 @@ export const NestedCategoryTable = ({ account, statementPeriod, actualTransactio
     setFormError(null)
     setIsModalOpen(true)
   }, [account, defaultCriticalityMap, defaultPaymentMethodMap])
+
+  const openCategoryModal = useCallback((category: string) => {
+    setSelectedCategory(category)
+    setIsCategoryModalOpen(true)
+  }, [])
+
+  const closeCategoryModal = useCallback(() => {
+    setIsCategoryModalOpen(false)
+    setSelectedCategory(null)
+  }, [])
 
   const columns = useMemo<ColumnDef<NestedTableRow>[]>(() => [
     {
@@ -568,9 +657,15 @@ export const NestedCategoryTable = ({ account, statementPeriod, actualTransactio
           {table.getRowModel().rows.map((row) => (
             <tr
               key={row.id}
-               className={getRowClassName(row.original, row.depth)}
+              className={getRowClassName(row.original, row.depth)}
               data-depth={row.depth}
-              onClick={row.getCanExpand() ? () => toggleRow(row.id) : undefined}
+              onClick={
+                row.getCanExpand()
+                  ? () => toggleRow(row.id)
+                  : row.original.kind === 'category'
+                    ? () => openCategoryModal(row.original.category)
+                    : undefined
+              }
               onKeyDown={row.getCanExpand()
                 ? (event) => {
                     if (event.key === 'Enter' || event.key === ' ') {
@@ -578,9 +673,16 @@ export const NestedCategoryTable = ({ account, statementPeriod, actualTransactio
                       toggleRow(row.id)
                     }
                   }
-                : undefined}
-              tabIndex={row.getCanExpand() ? 0 : undefined}
-              role={row.getCanExpand() ? 'button' : undefined}
+                : row.original.kind === 'category'
+                  ? (event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        openCategoryModal(row.original.category)
+                      }
+                    }
+                  : undefined}
+              tabIndex={row.getCanExpand() || row.original.kind === 'category' ? 0 : undefined}
+              role={row.getCanExpand() || row.original.kind === 'category' ? 'button' : undefined}
               aria-expanded={row.getCanExpand() ? row.getIsExpanded() : undefined}
             >
               {row.getVisibleCells().map((cell) => (
@@ -706,6 +808,15 @@ export const NestedCategoryTable = ({ account, statementPeriod, actualTransactio
             </button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        isOpen={isCategoryModalOpen && !!selectedCategory}
+        title={selectedCategory ? `Transactions for ${selectedCategory}` : ''}
+        onClose={closeCategoryModal}
+      >
+        <TxnList title="Projected" variant="projected" items={selectedCategoryProjectedTxns} />
+        <TxnList title="Transactions" variant="actual" items={selectedCategoryActualTxns} />
       </Modal>
     </div>
   )
