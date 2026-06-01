@@ -5,6 +5,20 @@ import { useCreateProjectedTransaction } from '@/features/projectedTransactions'
 import type { ProjectedTransaction } from '@/features/projectedTransactions/api/projectedTransactions.types.ts'
 import { statementPeriodToLastDayInputDate } from '@/utils/statementPeriod'
 
+/** Mapping from criticality ID to display name */
+const CRITICALITY_NAMES: Record<number, string> = {
+  1: 'Essential',
+  2: 'Nonessential',
+  3: 'Planned',
+}
+
+/** Reverse mapping from display name to criticality ID */
+const CRITICALITY_IDS: Record<string, number> = {
+  'Essential': 1,
+  'Nonessential': 2,
+  'Planned': 3,
+}
+
 type CategoryBreakdownRow = {
   category: string
   actualTotal: number
@@ -18,7 +32,7 @@ type FormState = {
   description: string
   amount: string
   category: string
-  criticality: string
+  criticality_id: number
   paymentMethod: string
   projectedDate: string
 }
@@ -68,7 +82,7 @@ const toApiPayload = (form: FormState): ProjectedTransaction => ({
   description: form.description.trim() || undefined,
   amount: Number(form.amount),
   category: form.category.trim(),
-  criticality: form.criticality.trim(),
+  criticality_id: form.criticality_id,
   paymentMethod: form.paymentMethod.trim(),
   projectedDate: form.projectedDate,
 })
@@ -80,7 +94,7 @@ const buildDefaultForm = (account: string, statementPeriod: string): FormState =
   description: '',
   amount: '',
   category: '',
-  criticality: '',
+  criticality_id: 2,
   paymentMethod: config.defaultPaymentMethodMap[account] || '',
   projectedDate: statementPeriodToLastDayInputDate(statementPeriod),
 })
@@ -218,7 +232,7 @@ export const CriticalityBreakdownTreeWidget = (props: {
     if (!form.statementPeriod.trim()) return false
     if (!form.projectedDate) return false
     if (!form.category.trim()) return false
-    if (!form.criticality.trim()) return false
+    if (!form.criticality_id) return false
     return Number.isFinite(parseCurrencyAmount(form.amount))
   }, [busy, form])
 
@@ -243,7 +257,7 @@ export const CriticalityBreakdownTreeWidget = (props: {
   const openCreate = () => {
     setForm({
       ...buildDefaultForm(props.account, props.statementPeriod),
-      criticality: tab === 'essential' ? 'Essential' : 'Nonessential',
+      criticality_id: tab === 'essential' ? 1 : 2,
     })
     setFormError(null)
     setIsModalOpen(true)
@@ -256,12 +270,13 @@ export const CriticalityBreakdownTreeWidget = (props: {
 
   const handleCategoryChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const category = e.target.value
-    const mappedCriticality = defaultCriticalityMap[category]
+    const mappedCriticalityString = defaultCriticalityMap[category]
+    const mappedCriticalityId = mappedCriticalityString ? CRITICALITY_IDS[mappedCriticalityString] : undefined
 
     setForm((current) => ({
       ...current,
       category,
-      criticality: mappedCriticality || current.criticality,
+      criticality_id: mappedCriticalityId ?? current.criticality_id,
     }))
   }
 
@@ -396,15 +411,15 @@ export const CriticalityBreakdownTreeWidget = (props: {
               <span className="tt-proj-label">Criticality *</span>
               <select
                 className="tt-proj-input"
-                value={form.criticality}
-                onChange={(e) => setForm((current) => ({ ...current, criticality: e.target.value }))}
+                value={form.criticality_id}
+                onChange={(e) => setForm((current) => ({ ...current, criticality_id: Number(e.target.value) }))}
                 required
               >
-                <option value="" disabled>
-                  Select criticality…
-                </option>
-                <option value="Essential">Essential</option>
-                <option value="Nonessential">Nonessential</option>
+                {Object.entries(CRITICALITY_NAMES).map(([id, name]) => (
+                  <option key={id} value={id}>
+                    {name}
+                  </option>
+                ))}
               </select>
             </label>
 

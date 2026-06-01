@@ -76,11 +76,11 @@ export const useCriticalitySummaries = (account?: string, statementPeriod?: stri
   ), [projectedQuery.data]) as ProjectedTransaction[]
 
   const essentialProjected = useMemo(
-    () => projectedList.filter((t) => String(t.criticality ?? '').toLowerCase() === 'essential'),
+    () => projectedList.filter((t) => t.criticality_id === 1),
     [projectedList]
   )
   const nonessentialProjected = useMemo(
-    () => projectedList.filter((t) => String(t.criticality ?? '').toLowerCase() === 'nonessential'),
+    () => projectedList.filter((t) => t.criticality_id === 2),
     [projectedList]
   )
 

@@ -3,7 +3,7 @@ export interface ProjectedTransaction {
   statementPeriod: string
   account: string
   category: string
-  criticality: string
+  criticality_id: number
   paymentMethod: string
   amount: number
   /** backend may use name */
@@ -40,7 +40,7 @@ export interface ProjectedTransactionFilters {
   statementPeriod?: string
   account?: string
   category?: string
-  criticality?: string
+  criticality_id?: number
   paymentMethod?: string
 }
 

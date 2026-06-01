@@ -7,6 +7,20 @@ import type { BudgetTransaction } from '@/features/transactions/api/transactions
 import { statementPeriodToLastDayInputDate, toInputDate } from '@/utils/statementPeriod'
 import { flexRender, getCoreRowModel, getExpandedRowModel, useReactTable, type ColumnDef, type ExpandedState } from '@tanstack/react-table'
 
+/** Mapping from criticality ID to display name */
+const CRITICALITY_NAMES: Record<number, string> = {
+  1: 'Essential',
+  2: 'Nonessential',
+  3: 'Planned',
+}
+
+/** Reverse mapping from display name to criticality ID */
+const CRITICALITY_IDS: Record<string, number> = {
+  'Essential': 1,
+  'Nonessential': 2,
+  'Planned': 3,
+}
+
 type CategoryRow = {
   kind: 'category'
   id: string
@@ -59,7 +73,7 @@ type FormState = {
   projectedDate: string
   statementPeriod: string
   account: string
-  criticality: string
+  criticality_id: number
   paymentMethod: string
   createdTime?: string
   status?: string
@@ -160,7 +174,7 @@ const toFormState = (tx?: ProjectedTransaction): FormState => {
     projectedDate: toInputDate(tx?.projectedDate ?? tx?.projectedTransactionDate),
     statementPeriod: tx?.statementPeriod ?? '',
     account: tx?.account ?? '',
-    criticality: tx?.criticality ?? '',
+    criticality_id: tx?.criticality_id ?? 2,
     paymentMethod: tx?.paymentMethod ?? '',
     createdTime: tx?.createdTime,
     status: tx?.status,
@@ -178,7 +192,7 @@ const toApiPayload = (form: FormState): ProjectedTransaction => {
     transactionDate: form.projectedDate,
     statementPeriod: form.statementPeriod.trim(),
     account: form.account.trim(),
-    criticality: form.criticality.trim(),
+    criticality_id: form.criticality_id,
     paymentMethod: form.paymentMethod.trim(),
     createdTime: form.createdTime,
     status: form.status,
@@ -400,7 +414,7 @@ export const NestedCategoryTable = ({ account, statementPeriod, actualTransactio
       statementPeriod: resolvedStatementPeriod,
       projectedDate,
       category: defaultCategory,
-      criticality: defaultCriticalityMap[defaultCategory] || 'Nonessential',
+      criticality_id: defaultCriticalityMap[defaultCategory] ? CRITICALITY_IDS[defaultCriticalityMap[defaultCategory]] : 2,
       paymentMethod: defaultPaymentMethodMap[resolvedAccount] || '',
     })
     setFormError(null)
@@ -418,8 +432,11 @@ export const NestedCategoryTable = ({ account, statementPeriod, actualTransactio
       next.paymentMethod = defaultPaymentMethodMap[next.account] || defaultPaymentMethodMap[account?.trim() ?? ''] || ''
     }
 
-    if (!next.criticality && next.category) {
-      next.criticality = defaultCriticalityMap[next.category] || ''
+    if (!next.criticality_id && next.category) {
+      const mappedString = defaultCriticalityMap[next.category]
+      if (mappedString) {
+        next.criticality_id = CRITICALITY_IDS[mappedString]
+      }
     }
 
     setMode('edit')
@@ -575,11 +592,12 @@ export const NestedCategoryTable = ({ account, statementPeriod, actualTransactio
 
   const handleCategoryChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const category = normalizeCategory(event.target.value)
-    const mapped = defaultCriticalityMap[category]
+    const mappedString = defaultCriticalityMap[category]
+    const mappedCriticalityId = mappedString ? CRITICALITY_IDS[mappedString] : undefined
     setForm((current) => ({
       ...current,
       category,
-      criticality: mapped || current.criticality,
+      criticality_id: mappedCriticalityId ?? current.criticality_id,
     }))
   }
 
@@ -849,12 +867,14 @@ export const NestedCategoryTable = ({ account, statementPeriod, actualTransactio
               <span className="tt-proj-label">Criticality</span>
               <select
                 className="tt-proj-input"
-                value={form.criticality}
-                onChange={(event) => setForm((current) => ({ ...current, criticality: event.target.value }))}
+                value={form.criticality_id}
+                onChange={(event) => setForm((current) => ({ ...current, criticality_id: Number(event.target.value) }))}
               >
-                <option value="">—</option>
-                <option value="Essential">Essential</option>
-                <option value="Nonessential">Nonessential</option>
+                {Object.entries(CRITICALITY_NAMES).map(([id, name]) => (
+                  <option key={id} value={id}>
+                    {name}
+                  </option>
+                ))}
               </select>
             </label>
 

@@ -3,7 +3,7 @@ export interface BudgetTransaction {
   statementPeriod: string
   account: string
   category: string
-  criticality: string
+  criticality_id: number
   paymentMethod: string
   amount: number
   /** backend uses name; keep optional description for UI compatibility */
@@ -38,6 +38,6 @@ export interface TransactionFilters {
   statementPeriod?: string
   account?: string
   category?: string
-  criticality?: string
+  criticality_id?: number
   paymentMethod?: string
 }

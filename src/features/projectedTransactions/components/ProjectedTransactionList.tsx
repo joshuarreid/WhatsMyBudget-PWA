@@ -72,6 +72,20 @@ const TrashIcon = () => (
   </svg>
 )
 
+/** Mapping from criticality ID to display name */
+const CRITICALITY_NAMES: Record<number, string> = {
+  1: 'Essential',
+  2: 'Nonessential',
+  3: 'Planned',
+}
+
+/** Reverse mapping from display name to criticality ID */
+const CRITICALITY_IDS: Record<string, number> = {
+  'Essential': 1,
+  'Nonessential': 2,
+  'Planned': 3,
+}
+
 type FormState = {
   id?: number
   name: string
@@ -81,7 +95,7 @@ type FormState = {
   projectedDate: string
   statementPeriod: string
   account: string
-  criticality: string
+  criticality_id?: number
   paymentMethod: string
   createdTime?: string
   status?: string
@@ -97,7 +111,7 @@ const toFormState = (tx?: ProjectedTransaction): FormState => {
     projectedDate: toInputDate(tx?.projectedDate ?? tx?.projectedTransactionDate),
     statementPeriod: tx?.statementPeriod ?? '',
     account: tx?.account ?? '',
-    criticality: tx?.criticality ?? '',
+    criticality_id: tx?.criticality_id,
     paymentMethod: tx?.paymentMethod ?? '',
     createdTime: tx?.createdTime,
     status: tx?.status,
@@ -115,7 +129,7 @@ const toApiPayload = (form: FormState): ProjectedTransaction => {
     transactionDate: form.projectedDate,
     statementPeriod: form.statementPeriod.trim(),
     account: form.account.trim(),
-    criticality: form.criticality.trim(),
+    criticality_id: form.criticality_id!,
     paymentMethod: form.paymentMethod.trim(),
     createdTime: form.createdTime,
     status: form.status,
@@ -202,11 +216,12 @@ export const ProjectedTransactionList = ({ transactions }: ProjectedTransactionL
 
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const category = e.target.value
-    const mapped = defaultCriticalityMap[category]
+    const mappedCriticalityString = defaultCriticalityMap[category]
+    const criticality_id = mappedCriticalityString ? CRITICALITY_IDS[mappedCriticalityString] : undefined
     setForm((s) => ({
       ...s,
       category,
-      criticality: mapped || s.criticality,
+      criticality_id: criticality_id ?? s.criticality_id,
     }))
   }
 
@@ -432,12 +447,18 @@ export const ProjectedTransactionList = ({ transactions }: ProjectedTransactionL
               <span className="tt-proj-label">Criticality</span>
               <select
                 className="tt-proj-input"
-                value={form.criticality}
-                onChange={(e) => setForm((s) => ({ ...s, criticality: e.target.value }))}
+                value={form.criticality_id ?? ''}
+                onChange={(e) => {
+                  const value = e.target.value
+                  setForm((s) => ({ ...s, criticality_id: value ? Number(value) : undefined }))
+                }}
               >
                 <option value="">—</option>
-                <option value="Essential">Essential</option>
-                <option value="Nonessential">Nonessential</option>
+                {Object.entries(CRITICALITY_NAMES).map(([id, name]) => (
+                  <option key={id} value={id}>
+                    {name}
+                  </option>
+                ))}
               </select>
             </label>
 
