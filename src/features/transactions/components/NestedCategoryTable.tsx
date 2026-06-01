@@ -341,8 +341,17 @@ export const NestedCategoryTable = ({ account, statementPeriod, actualTransactio
   const deleteMutation = useDeleteProjectedTransaction()
   const categoryRows = useMemo(() => buildCategoryRows(actualTransactions, transactions), [actualTransactions, transactions])
   const availableCategories = useMemo(() => {
-    const configured = config.categories.map(normalizeCategory)
-    return configured.length > 0 ? configured : categoryRows.map((row) => row.category)
+    const merged = new Set<string>()
+
+    config.categories.forEach((category) => {
+      merged.add(normalizeCategory(category))
+    })
+
+    categoryRows.forEach((row) => {
+      merged.add(normalizeCategory(row.category))
+    })
+
+    return Array.from(merged).sort((a, b) => a.localeCompare(b))
   }, [categoryRows])
   const paymentMethods = config.paymentMethods
   const defaultCriticalityMap = config.defaultCriticalityMap
