@@ -1,7 +1,7 @@
 export const config = {
   apiBaseUrl:
     import.meta.env.VITE_API_BASE_URL ||
-    (import.meta.env.DEV ? '/api' : 'http://localhost:8080'),
+    (import.meta.env.DEV ? '/api' : 'http://localhost:8081'),
   isDevelopment: import.meta.env.DEV,
   isProduction: import.meta.env.PROD,
 
