@@ -21,6 +21,7 @@
 
     --tt-crit-green: #1fbf75;
     --tt-crit-yellow: #f5c542;
+    --tt-crit-purple-dark: #4b2f8a;
 }
 
 /* Make tt-card a reusable, flexible card. */
@@ -927,6 +928,22 @@ html, body, #root, .main-layout, .dashboard-page-root {
   flex-direction: column;
   align-items: center;
   width: 150px; /* Reduced from 220px to bring rings closer together */
+}
+
+.tt-crit-tri-ring {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin: 0 auto;
+  padding-top: 24px;
+  padding-bottom: 32px;
+}
+
+.tt-crit-ring-box-planned {
+  margin-bottom: 6px;
 }
 
 .tt-crit-summary-sectioned {

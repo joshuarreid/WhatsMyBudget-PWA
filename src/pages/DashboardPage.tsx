@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { MainLayout } from '../layouts/MainLayout'
-import { useTransactions, useCriticalitySummaries, DualRingStat, NestedCategoryTable, TransactionList } from '@/features/transactions'
+import { useTransactions, useCriticalitySummaries, TriRingStat, NestedCategoryTable, TransactionList } from '@/features/transactions'
 import { useProjectedTransactions } from '@/features/projectedTransactions'
 import { useProfileStore } from '../store/useProfileStore'
 import { useStatementPeriodStore } from '../store/useStatementPeriodStore'
@@ -49,7 +49,8 @@ export const DashboardPage = () => {
               {criticalityPending && <p className="tt-empty">Loading criticality summary...</p>}
               {criticalityError && <p className="tt-error">Failed to load criticality summary.</p>}
               {criticalityDetails && (
-                <DualRingStat
+                <TriRingStat
+                  planned={criticalityDetails.summaries.planned}
                   essential={criticalityDetails.summaries.essential}
                   nonessential={criticalityDetails.summaries.nonessential}
                 />

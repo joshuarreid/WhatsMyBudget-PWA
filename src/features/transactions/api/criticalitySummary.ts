@@ -33,7 +33,7 @@ const pickBucketTransactions = (account: string, data: TransactionsAccountCritic
 export const fetchAccountTransactionsByCriticality = async (params: {
   account: string
   statementPeriod: string
-  criticality: 'essential' | 'nonessential'
+  criticality: 'essential' | 'nonessential' | 'planned'
 }): Promise<BudgetTransaction[]> => {
   const q = new URLSearchParams({
     account: params.account,
