@@ -1,5 +1,12 @@
 export type ConversationRole = 'user' | 'assistant'
 
+export type AgentMessageRole = 'system' | 'user' | 'assistant'
+
+export interface AgentChatMessage {
+  role: AgentMessageRole
+  content: string
+}
+
 export interface ConversationMessage {
   message_id: string
   role: ConversationRole
@@ -21,6 +28,7 @@ export interface ConversationHistoryResponse {
 export interface AskRagRequest {
   question: string
   conversation_id?: string
+  messages?: AgentChatMessage[]
   period?: string
   payment_method?: string
   account?: string

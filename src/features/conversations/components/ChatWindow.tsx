@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { ChatInput } from './ChatInput'
-import { useConversationHistory } from '../hooks/useConversations'
+import { useConversationHistory } from '../hooks'
 import { useProfileStore } from '@/store/useProfileStore'
 import type { Account } from '@/store/useProfileStore'
 import { useStatementPeriodStore } from '@/store/useStatementPeriodStore'
 import { Modal } from '@/components/Modal'
 import { formatStatementPeriod, parseStatementPeriod } from '@/utils/statementPeriodWindow'
+import type { AgentChatMessage } from '../api/conversations.types'
 
 type UiMessage = {
   id: string
@@ -43,6 +44,16 @@ const formatDay = (d: Date) =>
 const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
 
 const compareUiMessages = (a: UiMessage, b: UiMessage) => {
+  const aTime = a.createdAt?.getTime()
+  const bTime = b.createdAt?.getTime()
+
+  if (typeof aTime === 'number' && typeof bTime === 'number' && aTime !== bTime) {
+    return aTime - bTime
+  }
+
+  if (typeof aTime === 'number' && typeof bTime !== 'number') return -1
+  if (typeof aTime !== 'number' && typeof bTime === 'number') return 1
+
   const t = a.seq - b.seq
   return t !== 0 ? t : a.id.localeCompare(b.id)
 }
@@ -126,6 +137,12 @@ export function ChatWindow() {
 
     return Array.from(byId.values()).sort(compareUiMessages)
   }, [conversationId, historyMessages, liveMessages])
+
+  const apiMessages = useMemo<AgentChatMessage[]>(() => {
+    return messages
+      .map((m) => ({ role: m.role, content: m.content }))
+      .filter((m) => m.content.trim().length > 0)
+  }, [messages])
 
   useEffect(() => {
     console.log('[ChatWindow] state', {
@@ -268,6 +285,21 @@ export function ChatWindow() {
     console.log('[ChatWindow] filters', { accountFilter, periodFilter })
   }, [accountFilter, periodFilter])
 
+  useEffect(() => {
+    const handleReset = () => {
+      setLastEvent('new-conversation')
+      setConversationId(null)
+      setLiveMessages([])
+      setAssistantIsTyping(false)
+      nextSeqRef.current = 1
+    }
+    window.addEventListener('wmb:chat-reset', handleReset)
+
+    return () => {
+      window.removeEventListener('wmb:chat-reset', handleReset)
+    }
+  }, [])
+
   return (
     <>
       <div
@@ -286,17 +318,12 @@ export function ChatWindow() {
         <div className="chatFixedFooterInner">
           <ChatInput
             conversationId={conversationId}
+            historyMessages={apiMessages}
             onSendingChange={(sending) => setAssistantIsTyping(sending)}
             onConversationId={(id) => {
               console.log('[ChatWindow] setConversationId()', { id })
               setLastEvent('setConversationId')
-              setConversationId((prev) => {
-                if (prev !== id) {
-                  setLiveMessages([])
-                  nextSeqRef.current = 1
-                }
-                return id
-              })
+              setConversationId(id)
             }}
             onUserMessage={(content: string) => {
               console.log('[ChatWindow] onUserMessage()', { contentLen: content.length, content })

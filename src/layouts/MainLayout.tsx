@@ -12,6 +12,7 @@ interface MainLayoutProps {
 }
 
 const HEADER_HEIGHT = 56
+const CHAT_RESET_EVENT = 'wmb:chat-reset'
 
 const ChatIcon = ({ active }: { active: boolean }) => (
   <svg
@@ -126,7 +127,32 @@ const Header = ({ authed }: { authed: boolean }) => {
         {title}
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        {authed && !chatActive ? (
+        {authed && chatActive ? (
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new Event(CHAT_RESET_EVENT))}
+            aria-label="Start a new conversation"
+            title="New conversation"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '42px',
+              height: '42px',
+              borderRadius: '999px',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              background: 'rgba(255, 255, 255, 0.02)',
+              color: '#e6eef8',
+              cursor: 'pointer',
+              fontSize: '1.35rem',
+              fontWeight: 800,
+              lineHeight: 1,
+              transition: 'background 0.18s, border-color 0.18s, color 0.18s',
+            }}
+          >
+            +
+          </button>
+        ) : authed && !chatActive ? (
           <button
             type="button"
             onClick={() => navigate('/chat')}

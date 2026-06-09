@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAskAgent } from '../hooks/useConversations'
 import { useProfileStore } from '@/store/useProfileStore'
+import type { AgentChatMessage } from '../api/conversations.types'
 
 export interface ChatInputFilters {
   period?: string
@@ -18,6 +19,7 @@ interface ChatInputProps {
   onConversationId: (conversationId: string) => void
   onUserMessage: (content: string) => void
   onAssistantMessage: (content: string) => void
+  historyMessages?: AgentChatMessage[]
   onSendingChange?: (isSending: boolean) => void
   filters?: ChatInputFilters
   filtersSlot?: React.ReactNode
@@ -49,6 +51,7 @@ export function ChatInput({
   onConversationId,
   onUserMessage,
   onAssistantMessage,
+  historyMessages,
   onSendingChange,
   filters,
   filtersSlot,
@@ -111,6 +114,10 @@ export function ChatInput({
         request: {
           question: requestQuestion,
           conversation_id: conversationId ?? undefined,
+          messages: [
+            ...(historyMessages ?? []),
+            { role: 'user', content: requestQuestion },
+          ],
           account,
           period: filters?.period,
           payment_method: filters?.payment_method,
