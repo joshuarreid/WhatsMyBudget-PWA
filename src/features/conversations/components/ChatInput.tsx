@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useAskRag } from '../hooks/useConversations'
+import { useAskAgent } from '../hooks/useConversations'
 import { useProfileStore } from '@/store/useProfileStore'
 
 export interface ChatInputFilters {
@@ -61,8 +61,8 @@ export function ChatInput({
   const activeProfileAccount = useProfileStore((s) => s.profile)
   const account = filters?.account ?? activeProfileAccount
 
-  const askRag = useAskRag()
-  const isSending = askRag.isPending
+  const askAgent = useAskAgent()
+  const isSending = askAgent.isPending
 
   useEffect(() => {
     onSendingChange?.(isSending)
@@ -107,7 +107,7 @@ export function ChatInput({
     onUserMessage(question)
 
     try {
-      const response = await askRag.mutateAsync({
+      const response = await askAgent.mutateAsync({
         request: {
           question: requestQuestion,
           conversation_id: conversationId ?? undefined,
@@ -117,7 +117,7 @@ export function ChatInput({
         },
       })
 
-      console.log('[ChatInput] askRag response', response)
+      console.log('[ChatInput] askAgent response', response)
 
       if (!conversationId && response.conversation_id) {
         console.log('[ChatInput] onConversationId()', { conversation_id: response.conversation_id })
@@ -127,7 +127,7 @@ export function ChatInput({
       console.log('[ChatInput] onAssistantMessage()', { answerLen: response.answer?.length })
       onAssistantMessage(response.answer)
     } catch (err) {
-      console.error('[ChatInput] askRag error', err)
+      console.error('[ChatInput] askAgent error', err)
       onAssistantMessage('Sorry — something went wrong sending that. Please try again.')
     } finally {
       textareaRef.current?.focus()
@@ -181,7 +181,7 @@ export function ChatInput({
         </div>
       </div>
 
-      {askRag.isError ? (
+      {askAgent.isError ? (
         <div className="chatComposerError">
           Send failed. You can try again.
         </div>

@@ -1,13 +1,16 @@
 import axios from 'axios'
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { config } from '../config/env'
-import { tokenStorage } from '../features/auth/api/tokenStorage.ts'
-import { session } from '../features/auth/api/session.ts'
 
-export class ApiClient {
+/**
+ * HTTP client for agent endpoints (e.g., DigitalOcean chat-completions).
+ * Does NOT have the auto-logout interceptor, since agent endpoints
+ * authenticate independently (not with the app's JWT).
+ */
+export class AgentClient {
   private client: AxiosInstance
 
-  constructor(baseURL: string = config.apiBaseUrl) {
+  constructor(baseURL: string = config.agentApiBaseUrl) {
     this.client = axios.create({
       baseURL,
       headers: {
@@ -15,18 +18,10 @@ export class ApiClient {
       },
     })
 
-    // Request interceptor - add auth token
+    // Request interceptor - only add transaction ID
     this.client.interceptors.request.use(
       (config) => {
-        const stored = tokenStorage.get()
-        const token = stored && !tokenStorage.isExpired() ? stored.accessToken : null
-        if (token) {
-          config.headers = config.headers ?? {}
-          if (!config.headers.Authorization) {
-            config.headers.Authorization = `Bearer ${token}`
-          }
-        }
-        // Add transaction ID if not present
+        // Add transaction ID for tracing
         config.headers = config.headers ?? {}
         if (!config.headers['X-Transaction-ID']) {
           config.headers['X-Transaction-ID'] = this.generateTransactionId()
@@ -36,26 +31,11 @@ export class ApiClient {
       (error) => Promise.reject(error)
     )
 
-    // Response interceptor - handle 401
-    this.client.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        if (error.response?.status === 401) {
-          session.logout(true)
-        }
-        return Promise.reject(error)
-      }
-    )
+    // NO response interceptor - agent requests fail gracefully without redirecting to login
   }
 
   private generateTransactionId(): string {
     return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-  }
-
-  /** @deprecated Prefer using login() + tokenStorage via useLogin(). Kept for compatibility. */
-  public setToken(token: string): void {
-    const expiresAt = Date.now() + 24 * 60 * 60 * 1000
-    tokenStorage.set({ accessToken: token, expiresAt })
   }
 
   public get<T>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
@@ -75,4 +55,5 @@ export class ApiClient {
   }
 }
 
-export const apiClient = new ApiClient()
+
+

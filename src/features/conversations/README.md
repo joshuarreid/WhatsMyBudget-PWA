@@ -1,21 +1,27 @@
 # Conversations (Chat API)
 
-This feature provides *data-layer* support for the FastAPI RAG chat endpoints described in `implementation_docs/ChatApi.md`.
+This feature provides *data-layer* support for chat against a configurable agent endpoint (for example, a DigitalOcean agent endpoint) through a same-origin proxy path (`/agent-api`) to avoid browser CORS preflight failures.
 
 ## Exports
 
 - API (low-level): `src/api/conversations/*`
-  - `askRag(request)` -> `POST /rag/ask`
-  - `fetchConversationHistory(conversationId, limit?)` -> `GET /rag/conversations/{conversationId}?limit=...`
+  - `askAgent(request)` (also exported as `askRag` for backward compatibility)
+  - `fetchConversationHistory(conversationId, limit?)`
 
 - Hooks (feature-level): `src/features/conversations/hooks/*`
-  - `useAskRag()`
+  - `useAskAgent()` (also exported as `useAskRag` for backward compatibility)
   - `useConversationHistory(conversationId, limit?)`
 
 ## Notes
 
 - `ApiClient` automatically sends `Authorization` (if logged in) and `X-Transaction-ID`.
 - You may pass `{ headers: { 'X-Request-ID': '...' } }` to `useAskRag` if you want request correlation.
+- Endpoint config comes from env vars:
+  - `VITE_AGENT_API_BASE_URL` (used as the dev proxy target)
+  - `VITE_AGENT_ACCESS_KEY` (used as `Authorization: Bearer ...`)
+  - `VITE_AGENT_API_PATH` (defaults to `/v1/chat/completions`)
+
+The browser calls `/agent-api/v1/chat/completions`; Vite proxies that path to `VITE_AGENT_API_BASE_URL` in development.
 export type ConversationRole = 'user' | 'assistant'
 
 export interface ConversationMessage {

@@ -1,17 +1,34 @@
-import { ApiClient, apiClient } from '../../../api/ApiClient.ts'
+import { AgentClient } from '../../../api/AgentClient.ts'
+import { config } from '@/config/env'
+import type { AxiosRequestConfig, AxiosResponse } from 'axios'
 
-export class ConversationsApiClient extends ApiClient {
-  // The conversations/RAG API is hosted under the same base URL, but with this path prefix.
-  private basePath = '/whatsmybudgetrag/rag'
+export class ConversationsApiClient {
+  private client: AgentClient
+  private basePath = config.agentApiPath
 
-  constructor(client: ApiClient) {
-    super()
-    Object.assign(this, client)
+  constructor() {
+    this.client = new AgentClient()
   }
 
   getBasePath() {
     return this.basePath
   }
+
+  get<T>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    return this.client.get<T>(url, config)
+  }
+
+  post<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    return this.client.post<T>(url, data, config)
+  }
+
+  put<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    return this.client.put<T>(url, data, config)
+  }
+
+  delete<T>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    return this.client.delete<T>(url, config)
+  }
 }
 
-export const conversationsApiClient = new ConversationsApiClient(apiClient)
+export const conversationsApiClient = new ConversationsApiClient()

@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { fetchConversationHistory, askRag } from '../api/conversations.ts'
+import { fetchConversationHistory, askAgent } from '../api/conversations.ts'
 import { conversationsQueryKeys } from '../api/conversationsQueryKeys.ts'
 import type { AskRagRequest, AskRagResponse } from '../api/conversations.types.ts'
 
@@ -20,13 +20,16 @@ export const useConversationHistory = (conversationId?: string, limit?: number) 
 }
 
 /**
- * React Query mutation hook for askRag.
+ * React Query mutation hook for sending an agent question.
  */
-export const useAskRag = () => {
+export const useAskAgent = () => {
   return useMutation({
     mutationFn: ({ request, headers }: { request: AskRagRequest; headers?: Record<string, string> }) =>
-      askRag(request, { headers }),
+      askAgent(request, { headers }),
   })
 }
+
+// Backward-compatible alias while call sites migrate naming.
+export const useAskRag = useAskAgent
 
 export type UseAskRagResult = AskRagResponse

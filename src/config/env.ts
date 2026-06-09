@@ -2,6 +2,14 @@ export const config = {
   apiBaseUrl:
     import.meta.env.VITE_API_BASE_URL ||
     (import.meta.env.DEV ? '/api' : 'http://localhost:8081'),
+  agentApiBaseUrl: '/agent-api',
+  agentApiPath: normalizeApiPath(import.meta.env.VITE_AGENT_API_PATH || '/v1/chat/completions'),
+  agentProxyTargetUrl: typeof import.meta.env.VITE_AGENT_API_BASE_URL === 'string'
+    ? import.meta.env.VITE_AGENT_API_BASE_URL.trim()
+    : '',
+  agentAccessKey: typeof import.meta.env.VITE_AGENT_ACCESS_KEY === 'string'
+    ? import.meta.env.VITE_AGENT_ACCESS_KEY.trim()
+    : '',
   isDevelopment: import.meta.env.DEV,
   isProduction: import.meta.env.PROD,
 
@@ -12,6 +20,14 @@ export const config = {
   defaultCriticalityMap: parseJsonRecord(import.meta.env.VITE_DEFAULT_CRITICALITY_MAP),
   defaultPaymentMethodMap: parseJsonRecord(import.meta.env.VITE_DEFAULT_PAYMENT_METHOD_MAP),
 } as const
+
+function normalizeApiPath(value: unknown): string {
+  if (typeof value !== 'string') return ''
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  const withLeadingSlash = trimmed.startsWith('/') ? trimmed : `/${trimmed}`
+  return withLeadingSlash.replace(/\/+$/, '')
+}
 
 function parseCsv(value: unknown): string[] {
   if (typeof value !== 'string') return []
