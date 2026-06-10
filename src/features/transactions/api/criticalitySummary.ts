@@ -41,8 +41,7 @@ export const fetchAccountTransactionsByCriticality = async (params: {
     criticality: params.criticality,
   })
 
-  // Note: endpoint intentionally uses /api/transactions (not /api/v2/transactions)
-  const url = `/api/transactions/account?${q.toString()}`
+  const url = `${transactionsApiClient.getBasePath()}/account?${q.toString()}`
   const res = await transactionsApiClient.get<TransactionsAccountCriticalityResponse>(url)
   return pickBucketTransactions(params.account, res.data) as BudgetTransaction[]
 }

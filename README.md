@@ -42,3 +42,10 @@ Set this env var in App Platform (or locally) so `vite preview` will accept the 
 Notes:
 - Variables must be prefixed with `VITE_` to be exposed to the frontend.
 - Changing these requires a rebuild/redeploy on App Platform.
+
+## Architecture Docs
+
+- `docs/ARCHITECTURE.md`
+- `docs/ABSTRACTIONS.md`
+- `docs/decisions/ADR-002-decommission-legacy-v1-api-paths.md`
+
