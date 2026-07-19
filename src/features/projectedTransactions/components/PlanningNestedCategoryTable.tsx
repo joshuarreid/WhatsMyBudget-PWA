@@ -847,7 +847,6 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
                                     touchDragRef.current = { ...touchDrag, moved: true }
                                   }
 
-                                  event.preventDefault()
                                   setDragPointer({ x: touch.clientX, y: touch.clientY })
                                   maybeSwitchPeriodFromPointer(touch.clientX, event.timeStamp)
                                   maybeAutoScrollFromPointer(touch.clientY)
