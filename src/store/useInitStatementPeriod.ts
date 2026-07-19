@@ -19,7 +19,7 @@ export function useInitStatementPeriod() {
       setAvailablePeriods(periods)
       // Default to the current period (middle of the window)
       if (!selectedPeriod && periods.length > 0) {
-        setSelectedPeriod(periods[6] ?? periods[periods.length - 1])
+        setSelectedPeriod(periods[6] ?? periods[periods.length - 1], { persist: false })
       }
     }
   }, [data, isPending, isError, setAvailablePeriods, setSelectedPeriod, setLoading, setError, selectedPeriod])

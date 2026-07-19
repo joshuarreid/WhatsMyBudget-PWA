@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { MainLayout } from '../layouts/MainLayout'
-import { useTransactions, useCriticalitySummaries, TriRingStat, NestedCategoryTable, TransactionList } from '@/features/transactions'
-import { useProjectedTransactions } from '@/features/projectedTransactions'
+import { useTransactions, useCriticalitySummaries, TriRingStat, SpendingAveragesStatCards, NestedCategoryTable } from '@/features/transactions'
 import { useProfileStore } from '../store/useProfileStore'
 import { useStatementPeriodStore } from '../store/useStatementPeriodStore'
 import './DashboardPage.css'
@@ -14,8 +13,7 @@ export const DashboardPage = () => {
     return selectedPeriod ? { statementPeriod: selectedPeriod } : undefined
   }, [selectedPeriod])
 
-  const { data: transactions, isPending: transactionsLoading } = useTransactions(selectedAccount, filters)
-  const { data: projectedTransactions } = useProjectedTransactions(selectedAccount, filters)
+  const { data: transactions, isPending: transactionsLoading, isError: transactionsError } = useTransactions(selectedAccount, filters)
   const {
     data: criticalityDetails,
     isPending: criticalityPending,
@@ -30,15 +28,6 @@ export const DashboardPage = () => {
       return new Date(bDate).getTime() - new Date(aDate).getTime()
     })
   }, [transactions])
-
-  const sortedProjectedTransactions = useMemo(() => {
-    const list = projectedTransactions?.projectedTransactions ?? []
-    return [...list].sort((a, b) => {
-      const aDate = a.projectedDate ?? a.projectedTransactionDate
-      const bDate = b.projectedDate ?? b.projectedTransactionDate
-      return new Date(bDate).getTime() - new Date(aDate).getTime()
-    })
-  }, [projectedTransactions])
 
   return (
     <MainLayout>
@@ -55,25 +44,19 @@ export const DashboardPage = () => {
                   nonessential={criticalityDetails.summaries.nonessential}
                 />
               )}
+              <SpendingAveragesStatCards
+                transactions={sortedActualTransactions}
+                isPending={transactionsLoading}
+                isError={transactionsError}
+              />
               <NestedCategoryTable
                 account={selectedAccount}
                 statementPeriod={selectedPeriod}
                 actualTransactions={sortedActualTransactions}
-                transactions={sortedProjectedTransactions}
+                transactions={[]}
               />
             </div>
           )}
-          <div className="tt-subcard">
-            <div className="tt-section-title">Posted Transactions</div>
-            {transactionsLoading && <p className="tt-empty">Loading transactions...</p>}
-            <div className="tt-body">
-              {transactions ? (
-                <TransactionList transactions={sortedActualTransactions} />
-              ) : (
-                <div className="tt-empty" />
-              )}
-            </div>
-          </div>
         </div>
       </div>
     </MainLayout>

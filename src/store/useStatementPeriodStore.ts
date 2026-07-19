@@ -1,8 +1,13 @@
 import { create } from 'zustand'
+import { updateCurrentStatementPeriod } from '../api/cache/cache'
+
+type SetSelectedPeriodOptions = {
+  persist?: boolean
+}
 
 export type StatementPeriodStoreState = {
   selectedPeriod: string
-  setSelectedPeriod: (period: string) => void
+  setSelectedPeriod: (period: string, options?: SetSelectedPeriodOptions) => void
   availablePeriods: string[]
   setAvailablePeriods: (periods: string[]) => void
   loading: boolean
@@ -13,7 +18,15 @@ export type StatementPeriodStoreState = {
 
 export const useStatementPeriodStore = create<StatementPeriodStoreState>((set) => ({
   selectedPeriod: '',
-  setSelectedPeriod: (period) => set({ selectedPeriod: period }),
+  setSelectedPeriod: (period, options) => {
+    set({ selectedPeriod: period })
+
+    if (options?.persist === false) return
+
+    void updateCurrentStatementPeriod(period).catch((error) => {
+      console.error('Failed to persist current statement period', error)
+    })
+  },
   availablePeriods: [],
   setAvailablePeriods: (periods) => set({ availablePeriods: periods }),
   loading: false,
@@ -21,4 +34,3 @@ export const useStatementPeriodStore = create<StatementPeriodStoreState>((set) =
   error: false,
   setError: (error) => set({ error }),
 }))
-
