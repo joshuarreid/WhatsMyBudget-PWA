@@ -55,7 +55,7 @@ const EDGE_SWITCH_COOLDOWN_MS = 500
 const EDGE_SWITCH_HOTZONE_PX = 64
 const VERTICAL_SCROLL_HOTZONE_PX = 90
 const VERTICAL_SCROLL_STEP_PX = 26
-const TOUCH_DRAG_THRESHOLD_PX = 10
+const TOUCH_DRAG_THRESHOLD_PX = 22
 const TOUCH_HOLD_TO_DRAG_MS = 1000
 const TOUCH_CLICK_SUPPRESS_MS = 350
 
@@ -798,18 +798,21 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
                                   if (busy || editModeForSection || event.touches.length !== 1) return
                                   clearTouchHoldTimer()
                                   const touch = event.touches[0]
+                                  const touchId = touch.identifier
+                                  const startX = touch.clientX
+                                  const startY = touch.clientY
                                   touchDragRef.current = {
-                                    id: touch.identifier,
-                                    startX: touch.clientX,
-                                    startY: touch.clientY,
+                                    id: touchId,
+                                    startX,
+                                    startY,
                                     moved: false,
                                     activated: false,
                                   }
                                   touchHoldTimerRef.current = setTimeout(() => {
                                     const currentTouch = touchDragRef.current
-                                    if (!currentTouch || currentTouch.id !== touch.identifier) return
+                                    if (!currentTouch || currentTouch.id !== touchId) return
                                     touchDragRef.current = { ...currentTouch, activated: true }
-                                    setDragPointer({ x: touch.clientX, y: touch.clientY })
+                                    setDragPointer({ x: startX, y: startY })
                                     setActiveDropAccount(account)
                                     setActiveDropCategoryKey(rowKey)
                                     setDragState({
