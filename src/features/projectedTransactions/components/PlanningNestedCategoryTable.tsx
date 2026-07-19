@@ -1,4 +1,4 @@
-import { useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useMemo, useRef, useState, type ChangeEvent, type FormEvent, type TouchEvent } from 'react'
 import { config } from '@/config/env'
 import { Modal } from '@/components/Modal'
 import { useStatementPeriodStore } from '@/store/useStatementPeriodStore'
@@ -55,6 +55,8 @@ const EDGE_SWITCH_COOLDOWN_MS = 500
 const EDGE_SWITCH_HOTZONE_PX = 64
 const VERTICAL_SCROLL_HOTZONE_PX = 90
 const VERTICAL_SCROLL_STEP_PX = 26
+const TOUCH_DRAG_THRESHOLD_PX = 10
+const TOUCH_CLICK_SUPPRESS_MS = 350
 
 const formatCurrency = (value: number) =>
   value.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
@@ -236,6 +238,8 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
   const [selected, setSelected] = useState<ProjectedTransaction | undefined>(undefined)
   const [form, setForm] = useState<FormState>(() => toFormState())
   const [formError, setFormError] = useState<string | null>(null)
+  const touchDragRef = useRef<{ id: number; startX: number; startY: number; moved: boolean } | null>(null)
+  const suppressClickUntilRef = useRef(0)
 
   const busy = createMutation.isPending || deleteMutation.isPending || updateMutation.isPending
   const categories = config.categories
@@ -437,9 +441,8 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
     setAvailablePeriods(sortedUniquePeriods([...existing, period]))
   }
 
-  const maybeSwitchPeriodFromPointer = (clientX: number) => {
+  const maybeSwitchPeriodFromPointer = (clientX: number, now: number) => {
     if (!dragState || !statementPeriod) return
-    const now = Date.now()
     if (now - dragState.lastPeriodSwitchAt < EDGE_SWITCH_COOLDOWN_MS) return
 
     const viewportWidth = window.innerWidth
@@ -483,6 +486,35 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
       dragState.sourceTransactionAccount === 'joint' &&
       (targetAccount === 'josh' || targetAccount === 'anna')
     )
+  }
+
+  const toPlanningAccount = (value: string | null): PlanningAccount | null => {
+    if (!value) return null
+    return ACCOUNT_ORDER.includes(value as PlanningAccount) ? (value as PlanningAccount) : null
+  }
+
+  const resolveDropTargetFromPoint = (clientX: number, clientY: number) => {
+    const element = document.elementFromPoint(clientX, clientY) as HTMLElement | null
+    if (!element) return null
+
+    const categoryTarget = element.closest('[data-drop-category][data-drop-account]') as HTMLElement | null
+    if (categoryTarget) {
+      const account = toPlanningAccount(categoryTarget.dataset.dropAccount ?? null)
+      const category = categoryTarget.dataset.dropCategory
+      if (account && category) {
+        return { account, category }
+      }
+    }
+
+    const accountTarget = element.closest('[data-drop-account]') as HTMLElement | null
+    if (accountTarget) {
+      const account = toPlanningAccount(accountTarget.dataset.dropAccount ?? null)
+      if (account) {
+        return { account }
+      }
+    }
+
+    return null
   }
 
   const handleDropOnAccount = async (targetAccount: PlanningAccount, targetCategory?: string) => {
@@ -581,7 +613,7 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
       className={`tt-plan-nested ${dragState ? 'tt-plan-nested-dragging' : ''}`}
       onDragOver={(event) => {
         event.preventDefault()
-        maybeSwitchPeriodFromPointer(event.clientX)
+        maybeSwitchPeriodFromPointer(event.clientX, event.timeStamp)
         maybeAutoScrollFromPointer(event.clientY)
       }}
     >
@@ -592,6 +624,7 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
           <section
             key={account}
             className={`tt-plan-nested-section ${activeDropAccount === account ? 'tt-plan-nested-section-active' : ''}`}
+            data-drop-account={account}
             onDragOver={(event) => {
               if (!dragState || account === dragState.sourceAccount || canCrossAccountTransfer(account)) {
                 event.preventDefault()
@@ -657,6 +690,8 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
                     <div
                       key={rowKey}
                       className={`tt-plan-nested-category ${activeDropCategoryKey === rowKey ? 'tt-plan-nested-category-active' : ''}`}
+                      data-drop-account={account}
+                      data-drop-category={row.category}
                       onDragOver={(event) => {
                         event.preventDefault()
                         event.stopPropagation()
@@ -701,7 +736,8 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
                                 draggable={!busy && !editModeForSection}
                                 role="button"
                                 tabIndex={0}
-                                onClick={() => {
+                                onClick={(event) => {
+                                  if (event.timeStamp < suppressClickUntilRef.current) return
                                   if (editModeForSection) {
                                     if (!projectedId) return
                                     toggleSectionRowSelection(account, projectedId)
@@ -735,6 +771,97 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
                                 onDragEnd={() => {
                                   setActiveDropCategoryKey(null)
                                   setActiveDropAccount(null)
+                                  setDragState(null)
+                                }}
+                                onTouchStart={(event: TouchEvent<HTMLDivElement>) => {
+                                  if (busy || editModeForSection || event.touches.length !== 1) return
+                                  const touch = event.touches[0]
+                                  touchDragRef.current = {
+                                    id: touch.identifier,
+                                    startX: touch.clientX,
+                                    startY: touch.clientY,
+                                    moved: false,
+                                  }
+                                  setDragState({
+                                    transaction: tx,
+                                    sourceAccount: account,
+                                    sourceTransactionAccount: normalizeAccount(tx.account),
+                                    sourcePeriod: statementPeriod,
+                                    lastPeriodSwitchAt: 0,
+                                  })
+                                  setMoveError(null)
+                                  setBlockedMoveMessage(null)
+                                }}
+                                onTouchMove={(event: TouchEvent<HTMLDivElement>) => {
+                                  const touchDrag = touchDragRef.current
+                                  if (!touchDrag || !dragState) return
+                                  const touch = Array.from(event.touches).find((item) => item.identifier === touchDrag.id)
+                                  if (!touch) return
+
+                                  if (!touchDrag.moved) {
+                                    const deltaX = touch.clientX - touchDrag.startX
+                                    const deltaY = touch.clientY - touchDrag.startY
+                                    if (Math.hypot(deltaX, deltaY) >= TOUCH_DRAG_THRESHOLD_PX) {
+                                      touchDragRef.current = { ...touchDrag, moved: true }
+                                    }
+                                  }
+
+                                  if (!touchDragRef.current?.moved) return
+
+                                  event.preventDefault()
+                                  maybeSwitchPeriodFromPointer(touch.clientX, event.timeStamp)
+                                  maybeAutoScrollFromPointer(touch.clientY)
+
+                                  const target = resolveDropTargetFromPoint(touch.clientX, touch.clientY)
+                                  if (!target) {
+                                    setActiveDropAccount(null)
+                                    setActiveDropCategoryKey(null)
+                                    return
+                                  }
+
+                                  if (
+                                    target.account !== dragState.sourceAccount &&
+                                    !canCrossAccountTransfer(target.account)
+                                  ) {
+                                    setActiveDropAccount(null)
+                                    setActiveDropCategoryKey(null)
+                                    return
+                                  }
+
+                                  setActiveDropAccount(target.account)
+                                  setActiveDropCategoryKey(target.category ? `${target.account}:${target.category}` : null)
+                                }}
+                                onTouchEnd={(event: TouchEvent<HTMLDivElement>) => {
+                                  const touchDrag = touchDragRef.current
+                                  if (!touchDrag) return
+                                  const touch = Array.from(event.changedTouches).find((item) => item.identifier === touchDrag.id)
+                                  touchDragRef.current = null
+                                  if (!touch) return
+
+                                  if (!touchDrag.moved) {
+                                    setActiveDropAccount(null)
+                                    setActiveDropCategoryKey(null)
+                                    setDragState(null)
+                                    return
+                                  }
+
+                                  event.preventDefault()
+                                  suppressClickUntilRef.current = event.timeStamp + TOUCH_CLICK_SUPPRESS_MS
+
+                                  const target = resolveDropTargetFromPoint(touch.clientX, touch.clientY)
+                                  if (!target) {
+                                    setActiveDropAccount(null)
+                                    setActiveDropCategoryKey(null)
+                                    setDragState(null)
+                                    return
+                                  }
+
+                                  void handleDropOnAccount(target.account, target.category)
+                                }}
+                                onTouchCancel={() => {
+                                  touchDragRef.current = null
+                                  setActiveDropAccount(null)
+                                  setActiveDropCategoryKey(null)
                                   setDragState(null)
                                 }}
                               >

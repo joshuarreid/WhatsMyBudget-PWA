@@ -1703,6 +1703,12 @@ html, body, #root, .main-layout, .dashboard-page-root {
   gap: 10px;
 }
 
+.tt-plan-nested-dragging,
+.tt-plan-nested-dragging * {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 .tt-plan-nested-sections {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1826,6 +1832,10 @@ html, body, #root, .main-layout, .dashboard-page-root {
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(0, 0, 0, 0.24);
   cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
 }
 
 .tt-plan-nested-item-split {
