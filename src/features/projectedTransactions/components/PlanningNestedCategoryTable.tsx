@@ -40,6 +40,10 @@ type FormState = {
   status?: string
 }
 
+type SectionEditModeState = Record<PlanningAccount, boolean>
+type SectionSelectionState = Record<PlanningAccount, string[]>
+type ModalMode = 'create' | 'edit'
+
 const ACCOUNT_ORDER: PlanningAccount[] = ['joint', 'josh', 'anna']
 const ACCOUNT_LABELS: Record<PlanningAccount, string> = {
   joint: 'Joint',
@@ -49,6 +53,8 @@ const ACCOUNT_LABELS: Record<PlanningAccount, string> = {
 
 const EDGE_SWITCH_COOLDOWN_MS = 500
 const EDGE_SWITCH_HOTZONE_PX = 64
+const VERTICAL_SCROLL_HOTZONE_PX = 90
+const VERTICAL_SCROLL_STEP_PX = 26
 
 const formatCurrency = (value: number) =>
   value.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
@@ -101,6 +107,15 @@ const CRITICALITY_IDS: Record<string, number> = {
   Nonessential: 2,
   Planned: 3,
 }
+
+const TrashIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M5 7h14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M9 7V5.8c0-.44.36-.8.8-.8h4.4c.44 0 .8.36.8.8V7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M8 7v10.2c0 .99.81 1.8 1.8 1.8h4.4c.99 0 1.8-.81 1.8-1.8V7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M10.5 10.5v5M13.5 10.5v5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
 
 const toFormState = (tx?: ProjectedTransaction): FormState => ({
   id: tx?.id,
@@ -206,7 +221,18 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
   const [activeDropCategoryKey, setActiveDropCategoryKey] = useState<string | null>(null)
   const [moveError, setMoveError] = useState<string | null>(null)
   const [blockedMoveMessage, setBlockedMoveMessage] = useState<string | null>(null)
+  const [sectionEditMode, setSectionEditMode] = useState<SectionEditModeState>({
+    joint: false,
+    josh: false,
+    anna: false,
+  })
+  const [sectionSelection, setSectionSelection] = useState<SectionSelectionState>({
+    joint: [],
+    josh: [],
+    anna: [],
+  })
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [modalMode, setModalMode] = useState<ModalMode>('edit')
   const [selected, setSelected] = useState<ProjectedTransaction | undefined>(undefined)
   const [form, setForm] = useState<FormState>(() => toFormState())
   const [formError, setFormError] = useState<string | null>(null)
@@ -215,6 +241,7 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
   const categories = config.categories
   const paymentMethods = config.paymentMethods
   const defaultCriticalityMap = config.defaultCriticalityMap
+  const defaultPaymentMethodMap = config.defaultPaymentMethodMap
 
   const byAccount = useMemo(() => {
     return {
@@ -278,15 +305,73 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
     if (!next.projectedDate && next.statementPeriod) {
       next.projectedDate = statementPeriodToLastDayInputDate(next.statementPeriod)
     }
+    setModalMode('edit')
     setSelected(resolvedTx)
     setForm(next)
     setFormError(null)
     setIsModalOpen(true)
   }
 
+  const openCreateForAccount = (account: PlanningAccount) => {
+    if (!statementPeriod) return
+    const projectedDate = statementPeriodToLastDayInputDate(statementPeriod)
+    const defaultCategory = config.categories[0] ?? ''
+    const mappedCriticality = defaultCriticalityMap[defaultCategory]
+    setModalMode('create')
+    setSelected(undefined)
+    setForm({
+      ...toFormState(),
+      account,
+      statementPeriod,
+      projectedDate,
+      category: defaultCategory,
+      criticality_id: mappedCriticality ? CRITICALITY_IDS[mappedCriticality] : 2,
+      paymentMethod: defaultPaymentMethodMap[account] ?? '',
+    })
+    setFormError(null)
+    setIsModalOpen(true)
+  }
+
+  const toggleSectionEditMode = (account: PlanningAccount) => {
+    setSectionEditMode((current) => {
+      const next = !current[account]
+      if (!next) {
+        setSectionSelection((selection) => ({ ...selection, [account]: [] }))
+      }
+      return { ...current, [account]: next }
+    })
+  }
+
+  const toggleSectionRowSelection = (account: PlanningAccount, transactionId: string) => {
+    setSectionSelection((current) => {
+      const set = new Set(current[account])
+      if (set.has(transactionId)) {
+        set.delete(transactionId)
+      } else {
+        set.add(transactionId)
+      }
+      return { ...current, [account]: Array.from(set) }
+    })
+  }
+
+  const deleteSelectedInSection = async (account: PlanningAccount) => {
+    const ids = sectionSelection[account]
+    if (ids.length === 0) return
+    const ok = window.confirm(`Delete ${ids.length} selected projected transaction${ids.length === 1 ? '' : 's'}?`)
+    if (!ok) return
+    try {
+      await Promise.all(ids.map((id) => deleteMutation.mutateAsync(id)))
+      setSectionSelection((current) => ({ ...current, [account]: [] }))
+      setSectionEditMode((current) => ({ ...current, [account]: false }))
+    } catch (error) {
+      setMoveError(error instanceof Error ? error.message : 'Failed to delete selected projections.')
+    }
+  }
+
   const closeModal = () => {
     if (busy) return
     setIsModalOpen(false)
+    setSelected(undefined)
   }
 
   const handleCategoryChange = (event: ChangeEvent<HTMLSelectElement>) => {
@@ -315,16 +400,34 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
     })
 
     try {
-      const id = String(selected?.id ?? payload.id ?? '')
-      if (!id) {
-        setFormError('Missing transaction id.')
-        return
+      if (modalMode === 'create') {
+        await createMutation.mutateAsync(payload)
+      } else {
+        const id = String(selected?.id ?? payload.id ?? '')
+        if (!id) {
+          setFormError('Missing transaction id.')
+          return
+        }
+        await updateMutation.mutateAsync({ id, data: payload })
       }
-      await updateMutation.mutateAsync({ id, data: payload })
       setIsModalOpen(false)
       setSelected(undefined)
     } catch (error) {
       setFormError(error instanceof Error ? error.message : 'Request failed.')
+    }
+  }
+
+  const deleteSelectedProjection = async () => {
+    const id = selected?.id
+    if (modalMode !== 'edit' || id == null || busy) return
+    const ok = window.confirm('Delete this projected transaction?')
+    if (!ok) return
+    try {
+      await deleteMutation.mutateAsync(String(id))
+      setIsModalOpen(false)
+      setSelected(undefined)
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Failed to delete projected transaction.')
     }
   }
 
@@ -351,6 +454,26 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
     ensurePeriodExists(targetPeriod)
     setSelectedPeriod(targetPeriod)
     setDragState((current) => (current ? { ...current, lastPeriodSwitchAt: now } : current))
+  }
+
+  const maybeAutoScrollFromPointer = (clientY: number) => {
+    const main = document.querySelector('main') as HTMLElement | null
+    if (!main) return
+
+    const rect = main.getBoundingClientRect()
+    const nearTop = clientY <= rect.top + VERTICAL_SCROLL_HOTZONE_PX
+    const nearBottom = clientY >= rect.bottom - VERTICAL_SCROLL_HOTZONE_PX
+
+    if (!nearTop && !nearBottom) return
+
+    if (nearTop && main.scrollTop > 0) {
+      main.scrollTop = Math.max(0, main.scrollTop - VERTICAL_SCROLL_STEP_PX)
+      return
+    }
+
+    if (nearBottom && main.scrollTop + main.clientHeight < main.scrollHeight) {
+      main.scrollTop = Math.min(main.scrollHeight, main.scrollTop + VERTICAL_SCROLL_STEP_PX)
+    }
   }
 
   const canCrossAccountTransfer = (targetAccount: PlanningAccount) => {
@@ -459,6 +582,7 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
       onDragOver={(event) => {
         event.preventDefault()
         maybeSwitchPeriodFromPointer(event.clientX)
+        maybeAutoScrollFromPointer(event.clientY)
       }}
     >
       {moveError ? <p className="tt-error">{moveError}</p> : null}
@@ -484,7 +608,37 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
               void handleDropOnAccount(account)
             }}
           >
-            <h3 className="tt-plan-nested-header">{ACCOUNT_LABELS[account]}</h3>
+            <div className="tt-plan-nested-section-toolbar">
+              <h3 className="tt-plan-nested-header">{ACCOUNT_LABELS[account]}</h3>
+              <div className="tt-plan-nested-section-actions">
+                <button
+                  type="button"
+                  className={`tt-plan-section-btn ${sectionEditMode[account] ? 'tt-plan-section-btn-active' : ''}`}
+                  onClick={() => toggleSectionEditMode(account)}
+                >
+                  Edit
+                </button>
+                {sectionEditMode[account] ? (
+                  <button
+                    type="button"
+                    className="tt-plan-section-btn tt-plan-section-btn-danger"
+                    onClick={() => void deleteSelectedInSection(account)}
+                    disabled={sectionSelection[account].length === 0 || deleteMutation.isPending}
+                    aria-label="Delete selected projections"
+                    title="Delete selected projections"
+                  >
+                    <TrashIcon />
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="tt-plan-section-btn"
+                  onClick={() => openCreateForAccount(account)}
+                >
+                  + Add
+                </button>
+              </div>
+            </div>
             {!planningSummary.isPending && !planningSummary.isError ? (
               <HorizontalTriRingStat
                 planned={toCriticalitySummary(planningSummary.model, account, 'planned')}
@@ -532,21 +686,42 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
                           {row.children.map((tx, index) => {
                             const key = tx.id != null ? `${tx.id}` : `${rowKey}-${index}`
                             const title = tx.description || tx.name || 'Projected transaction'
+                            const projectedId = tx.id != null ? String(tx.id) : undefined
+                            const editModeForSection = sectionEditMode[account]
+                            const selectedInSection = Boolean(projectedId && sectionSelection[account].includes(projectedId))
+                            const isSplitJointRow =
+                              account !== 'joint' &&
+                              (normalizeAccount(tx.account) === 'joint' ||
+                                String(tx.name ?? '').toLowerCase().includes('[split]') ||
+                                String(tx.description ?? '').toLowerCase().includes('[split]'))
                             return (
                               <div
                                 key={key}
-                                className="tt-plan-nested-item"
-                                draggable={!busy}
+                                className={`tt-plan-nested-item ${isSplitJointRow ? 'tt-plan-nested-item-split' : ''}`}
+                                draggable={!busy && !editModeForSection}
                                 role="button"
                                 tabIndex={0}
-                                onClick={() => openEdit(tx, account)}
+                                onClick={() => {
+                                  if (editModeForSection) {
+                                    if (!projectedId) return
+                                    toggleSectionRowSelection(account, projectedId)
+                                    return
+                                  }
+                                  openEdit(tx, account)
+                                }}
                                 onKeyDown={(event) => {
                                   if (event.key === 'Enter' || event.key === ' ') {
                                     event.preventDefault()
+                                    if (editModeForSection) {
+                                      if (!projectedId) return
+                                      toggleSectionRowSelection(account, projectedId)
+                                      return
+                                    }
                                     openEdit(tx, account)
                                   }
                                 }}
                                 onDragStart={() => {
+                                  if (editModeForSection) return
                                   setDragState({
                                     transaction: tx,
                                     sourceAccount: account,
@@ -562,7 +737,22 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
                                   setActiveDropAccount(null)
                                   setDragState(null)
                                 }}
-    >
+                              >
+                                {editModeForSection ? (
+                                  <input
+                                    type="checkbox"
+                                    className="tt-plan-nested-select"
+                                    checked={selectedInSection}
+                                    onChange={(event) => {
+                                      event.stopPropagation()
+                                      if (!projectedId) return
+                                      toggleSectionRowSelection(account, projectedId)
+                                    }}
+                                    onClick={(event) => event.stopPropagation()}
+                                    disabled={!projectedId || busy}
+                                    aria-label="Select projected row"
+                                  />
+                                ) : null}
                                 <span className="tt-plan-nested-item-title">{title}</span>
                                 <strong>{formatCurrency(Number(tx.amount) || 0)}</strong>
                               </div>
@@ -578,7 +768,23 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
           </section>
         ))}
       </div>
-      <Modal isOpen={isModalOpen} title="Edit projected transaction" onClose={closeModal}>
+      <Modal
+        isOpen={isModalOpen}
+        title={modalMode === 'create' ? 'Add projected transaction' : 'Edit projected transaction'}
+        onClose={closeModal}
+        headerActions={modalMode === 'edit' ? (
+          <button
+            type="button"
+            className="tt-modal-icon-button tt-modal-icon-button-danger"
+            aria-label="Delete projected transaction"
+            title="Delete projected transaction"
+            onClick={() => { void deleteSelectedProjection() }}
+            disabled={busy || !selected?.id}
+          >
+            <TrashIcon />
+          </button>
+        ) : undefined}
+      >
         <form className="tt-proj-form" onSubmit={onSubmit}>
           {formError ? <div className="tt-error">{formError}</div> : null}
           <div className="tt-proj-form-grid">
@@ -668,7 +874,9 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
               Cancel
             </button>
             <button type="submit" className="tt-proj-primary" disabled={busy}>
-              {updateMutation.isPending ? 'Saving…' : 'Save'}
+              {modalMode === 'create'
+                ? (createMutation.isPending ? 'Creating…' : 'Create')
+                : (updateMutation.isPending ? 'Saving…' : 'Save')}
             </button>
           </div>
         </form>

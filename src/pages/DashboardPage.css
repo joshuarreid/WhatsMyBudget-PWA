@@ -1723,11 +1723,60 @@ html, body, #root, .main-layout, .dashboard-page-root {
 }
 
 .tt-plan-nested-header {
-  margin: 0 0 8px;
+  margin: 0;
   text-align: center;
   font-size: 13px;
   letter-spacing: 0.03em;
   text-transform: uppercase;
+}
+
+.tt-plan-nested-section-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.tt-plan-nested-section-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.tt-plan-section-btn {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--tt-color-text);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 30px;
+  white-space: nowrap;
+}
+
+.tt-plan-section-btn-active {
+  border-color: rgba(141, 176, 255, 0.55);
+  box-shadow: 0 0 0 2px rgba(141, 176, 255, 0.12);
+}
+
+.tt-plan-section-btn-danger {
+  border-color: rgba(239, 68, 68, 0.45);
+  color: rgba(248, 113, 113, 0.95);
+}
+
+.tt-plan-section-btn svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
 }
 
 .tt-plan-nested-categories {
@@ -1777,6 +1826,17 @@ html, body, #root, .main-layout, .dashboard-page-root {
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(0, 0, 0, 0.24);
   cursor: grab;
+}
+
+.tt-plan-nested-item-split {
+  border-color: rgba(192, 132, 252, 0.35);
+  background: rgba(192, 132, 252, 0.08);
+}
+
+.tt-plan-nested-select {
+  width: 14px;
+  height: 14px;
+  accent-color: #8db0ff;
 }
 
 .tt-plan-nested-item:active {
