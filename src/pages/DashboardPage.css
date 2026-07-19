@@ -1703,6 +1703,42 @@ html, body, #root, .main-layout, .dashboard-page-root {
   gap: 10px;
 }
 
+.tt-plan-nested-drag-indicator {
+  color: rgba(141, 176, 255, 0.95);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.tt-plan-nested-drag-ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 70;
+  pointer-events: none;
+  max-width: min(70vw, 360px);
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(20, 24, 35, 0.92);
+  border: 1px solid rgba(141, 176, 255, 0.74);
+  color: rgba(230, 238, 248, 0.98);
+  font-size: 0.82rem;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  animation: tt-plan-drag-pulse 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes tt-plan-drag-pulse {
+  from {
+    filter: brightness(0.96);
+  }
+  to {
+    filter: brightness(1.08);
+  }
+}
+
 .tt-plan-nested-dragging,
 .tt-plan-nested-dragging * {
   user-select: none;
@@ -1835,7 +1871,28 @@ html, body, #root, .main-layout, .dashboard-page-root {
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
-  touch-action: none;
+  touch-action: pan-y;
+}
+
+.tt-plan-nested-item-dragging {
+  border-color: rgba(141, 176, 255, 0.82);
+  box-shadow:
+    0 0 0 2px rgba(141, 176, 255, 0.34),
+    0 6px 16px rgba(0, 0, 0, 0.24);
+  background: rgba(141, 176, 255, 0.22);
+  opacity: 1;
+  animation: tt-plan-row-armed-pulse 0.7s ease-in-out infinite alternate;
+}
+
+@keyframes tt-plan-row-armed-pulse {
+  from {
+    transform: translateZ(0) scale(1);
+    filter: brightness(0.98);
+  }
+  to {
+    transform: translateZ(0) scale(1.01);
+    filter: brightness(1.08);
+  }
 }
 
 .tt-plan-nested-item-split {

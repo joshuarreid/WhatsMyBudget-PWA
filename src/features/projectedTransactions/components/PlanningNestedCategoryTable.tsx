@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ChangeEvent, type FormEvent, type TouchEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type TouchEvent } from 'react'
 import { config } from '@/config/env'
 import { Modal } from '@/components/Modal'
 import { useStatementPeriodStore } from '@/store/useStatementPeriodStore'
@@ -56,6 +56,7 @@ const EDGE_SWITCH_HOTZONE_PX = 64
 const VERTICAL_SCROLL_HOTZONE_PX = 90
 const VERTICAL_SCROLL_STEP_PX = 26
 const TOUCH_DRAG_THRESHOLD_PX = 10
+const TOUCH_HOLD_TO_DRAG_MS = 1000
 const TOUCH_CLICK_SUPPRESS_MS = 350
 
 const formatCurrency = (value: number) =>
@@ -238,7 +239,9 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
   const [selected, setSelected] = useState<ProjectedTransaction | undefined>(undefined)
   const [form, setForm] = useState<FormState>(() => toFormState())
   const [formError, setFormError] = useState<string | null>(null)
-  const touchDragRef = useRef<{ id: number; startX: number; startY: number; moved: boolean } | null>(null)
+  const [dragPointer, setDragPointer] = useState<{ x: number; y: number } | null>(null)
+  const touchDragRef = useRef<{ id: number; startX: number; startY: number; moved: boolean; activated: boolean } | null>(null)
+  const touchHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const suppressClickUntilRef = useRef(0)
 
   const busy = createMutation.isPending || deleteMutation.isPending || updateMutation.isPending
@@ -517,7 +520,19 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
     return null
   }
 
-  const handleDropOnAccount = async (targetAccount: PlanningAccount, targetCategory?: string) => {
+  const clearTouchHoldTimer = () => {
+    if (touchHoldTimerRef.current == null) return
+    clearTimeout(touchHoldTimerRef.current)
+    touchHoldTimerRef.current = null
+  }
+
+  useEffect(() => {
+    return () => {
+      clearTouchHoldTimer()
+    }
+  }, [])
+
+  const handleDropOnAccount = async (targetAccount: PlanningAccount) => {
     if (!dragState || !statementPeriod || busy) return
     const targetPeriod = statementPeriod
     const sourceId = dragState.transaction.id
@@ -526,33 +541,12 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
       return
     }
 
-    const normalizedTargetCategory = targetCategory ? normalizeCategory(targetCategory) : undefined
     const normalizedSourceCategory = normalizeCategory(dragState.transaction.category)
 
     if (targetAccount === dragState.sourceAccount && targetPeriod === dragState.sourcePeriod) {
-      if (normalizedTargetCategory && normalizedTargetCategory !== normalizedSourceCategory) {
-        try {
-          await updateMutation.mutateAsync({
-            id: String(sourceId),
-            data: {
-              ...dragState.transaction,
-              category: normalizedTargetCategory,
-              projectedDate: toProjectedDate(dragState.transaction, targetPeriod),
-              transactionDate: toProjectedDate(dragState.transaction, targetPeriod),
-              statementPeriod: targetPeriod,
-            },
-          })
-        } catch (error) {
-          setMoveError(error instanceof Error ? error.message : 'Failed to change category.')
-        } finally {
-          setActiveDropCategoryKey(null)
-          setActiveDropAccount(null)
-          setDragState(null)
-        }
-        return
-      }
       setActiveDropCategoryKey(null)
       setActiveDropAccount(null)
+      setDragPointer(null)
       setDragState(null)
       return
     }
@@ -561,6 +555,7 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
       setBlockedMoveMessage('Only Joint rows can be moved to Josh or Anna. Split rows in Josh/Anna cannot move across owners.')
       setActiveDropCategoryKey(null)
       setActiveDropAccount(null)
+      setDragPointer(null)
       setDragState(null)
       return
     }
@@ -570,7 +565,7 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
       name: dragState.transaction.name,
       description: dragState.transaction.description,
       amount: Number(dragState.transaction.amount) || 0,
-      category: normalizedTargetCategory ?? normalizedSourceCategory,
+      category: normalizedSourceCategory,
       criticality_id: dragState.transaction.criticality_id ?? 2,
       paymentMethod:
         targetAccount === dragState.sourceAccount
@@ -592,6 +587,7 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
     } finally {
       setActiveDropCategoryKey(null)
       setActiveDropAccount(null)
+      setDragPointer(null)
       setDragState(null)
     }
   }
@@ -619,6 +615,21 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
     >
       {moveError ? <p className="tt-error">{moveError}</p> : null}
       {isPending && dragState ? <p className="tt-empty">Switching statement period… keep dragging to adjust.</p> : null}
+      {dragState ? (
+        <p className="tt-plan-nested-drag-indicator">
+          Moving: {dragState.transaction.description || dragState.transaction.name || 'Projected transaction'}
+        </p>
+      ) : null}
+      {dragState && dragPointer ? (
+        <div
+          className="tt-plan-nested-drag-ghost"
+          style={{
+            transform: `translate(${dragPointer.x}px, ${dragPointer.y}px)`,
+          }}
+        >
+          {dragState.transaction.description || dragState.transaction.name || 'Projected transaction'}
+        </div>
+      ) : null}
       <div className="tt-plan-nested-sections">
         {ACCOUNT_ORDER.map((account) => (
           <section
@@ -704,7 +715,7 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
                       onDrop={(event) => {
                         event.preventDefault()
                         event.stopPropagation()
-                        void handleDropOnAccount(account, row.category)
+                        void handleDropOnAccount(account)
                       }}
                     >
                       <button
@@ -724,6 +735,14 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
                             const projectedId = tx.id != null ? String(tx.id) : undefined
                             const editModeForSection = sectionEditMode[account]
                             const selectedInSection = Boolean(projectedId && sectionSelection[account].includes(projectedId))
+                            const isDraggingRow = Boolean(
+                              dragState &&
+                                dragState.sourceAccount === account &&
+                                (
+                                  (projectedId && dragState.transaction.id != null && projectedId === String(dragState.transaction.id)) ||
+                                  (dragState.transaction.id == null && dragState.transaction === tx)
+                                )
+                            )
                             const isSplitJointRow =
                               account !== 'joint' &&
                               (normalizeAccount(tx.account) === 'joint' ||
@@ -732,7 +751,7 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
                             return (
                               <div
                                 key={key}
-                                className={`tt-plan-nested-item ${isSplitJointRow ? 'tt-plan-nested-item-split' : ''}`}
+                                className={`tt-plan-nested-item ${isSplitJointRow ? 'tt-plan-nested-item-split' : ''} ${isDraggingRow ? 'tt-plan-nested-item-dragging' : ''}`}
                                 draggable={!busy && !editModeForSection}
                                 role="button"
                                 tabIndex={0}
@@ -758,6 +777,7 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
                                 }}
                                 onDragStart={() => {
                                   if (editModeForSection) return
+                                  setDragPointer(null)
                                   setDragState({
                                     transaction: tx,
                                     sourceAccount: account,
@@ -771,46 +791,65 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
                                 onDragEnd={() => {
                                   setActiveDropCategoryKey(null)
                                   setActiveDropAccount(null)
+                                  setDragPointer(null)
                                   setDragState(null)
                                 }}
                                 onTouchStart={(event: TouchEvent<HTMLDivElement>) => {
                                   if (busy || editModeForSection || event.touches.length !== 1) return
+                                  clearTouchHoldTimer()
                                   const touch = event.touches[0]
                                   touchDragRef.current = {
                                     id: touch.identifier,
                                     startX: touch.clientX,
                                     startY: touch.clientY,
                                     moved: false,
+                                    activated: false,
                                   }
-                                  setDragState({
-                                    transaction: tx,
-                                    sourceAccount: account,
-                                    sourceTransactionAccount: normalizeAccount(tx.account),
-                                    sourcePeriod: statementPeriod,
-                                    lastPeriodSwitchAt: 0,
-                                  })
-                                  setMoveError(null)
-                                  setBlockedMoveMessage(null)
+                                  touchHoldTimerRef.current = setTimeout(() => {
+                                    const currentTouch = touchDragRef.current
+                                    if (!currentTouch || currentTouch.id !== touch.identifier) return
+                                    touchDragRef.current = { ...currentTouch, activated: true }
+                                    setDragPointer({ x: touch.clientX, y: touch.clientY })
+                                    setActiveDropAccount(account)
+                                    setActiveDropCategoryKey(rowKey)
+                                    setDragState({
+                                      transaction: tx,
+                                      sourceAccount: account,
+                                      sourceTransactionAccount: normalizeAccount(tx.account),
+                                      sourcePeriod: statementPeriod,
+                                      lastPeriodSwitchAt: 0,
+                                    })
+                                    setMoveError(null)
+                                    setBlockedMoveMessage(null)
+                                  }, TOUCH_HOLD_TO_DRAG_MS)
                                 }}
                                 onTouchMove={(event: TouchEvent<HTMLDivElement>) => {
                                   const touchDrag = touchDragRef.current
-                                  if (!touchDrag || !dragState) return
+                                  if (!touchDrag) return
                                   const touch = Array.from(event.touches).find((item) => item.identifier === touchDrag.id)
                                   if (!touch) return
 
-                                  if (!touchDrag.moved) {
+                                  if (!touchDrag.activated) {
                                     const deltaX = touch.clientX - touchDrag.startX
                                     const deltaY = touch.clientY - touchDrag.startY
                                     if (Math.hypot(deltaX, deltaY) >= TOUCH_DRAG_THRESHOLD_PX) {
-                                      touchDragRef.current = { ...touchDrag, moved: true }
+                                      clearTouchHoldTimer()
+                                      touchDragRef.current = null
+                                      setDragPointer(null)
                                     }
+                                    return
                                   }
 
-                                  if (!touchDragRef.current?.moved) return
+                                  if (!touchDrag.moved) {
+                                    touchDragRef.current = { ...touchDrag, moved: true }
+                                  }
 
                                   event.preventDefault()
+                                  setDragPointer({ x: touch.clientX, y: touch.clientY })
                                   maybeSwitchPeriodFromPointer(touch.clientX, event.timeStamp)
                                   maybeAutoScrollFromPointer(touch.clientY)
+
+                                  if (!dragState) return
 
                                   const target = resolveDropTargetFromPoint(touch.clientX, touch.clientY)
                                   if (!target) {
@@ -835,12 +874,14 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
                                   const touchDrag = touchDragRef.current
                                   if (!touchDrag) return
                                   const touch = Array.from(event.changedTouches).find((item) => item.identifier === touchDrag.id)
+                                  clearTouchHoldTimer()
                                   touchDragRef.current = null
                                   if (!touch) return
 
-                                  if (!touchDrag.moved) {
+                                  if (!touchDrag.activated) {
                                     setActiveDropAccount(null)
                                     setActiveDropCategoryKey(null)
+                                    setDragPointer(null)
                                     setDragState(null)
                                     return
                                   }
@@ -852,16 +893,19 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
                                   if (!target) {
                                     setActiveDropAccount(null)
                                     setActiveDropCategoryKey(null)
+                                    setDragPointer(null)
                                     setDragState(null)
                                     return
                                   }
 
-                                  void handleDropOnAccount(target.account, target.category)
+                                  void handleDropOnAccount(target.account)
                                 }}
                                 onTouchCancel={() => {
+                                  clearTouchHoldTimer()
                                   touchDragRef.current = null
                                   setActiveDropAccount(null)
                                   setActiveDropCategoryKey(null)
+                                  setDragPointer(null)
                                   setDragState(null)
                                 }}
                               >
