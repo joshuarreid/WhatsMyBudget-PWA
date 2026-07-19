@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type TouchEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { config } from '@/config/env'
 import { Modal } from '@/components/Modal'
 import { useStatementPeriodStore } from '@/store/useStatementPeriodStore'
-import { addMonthsToStatementPeriod, parseStatementPeriod } from '@/utils/statementPeriodWindow'
+import { parseStatementPeriod } from '@/utils/statementPeriodWindow'
 import { statementPeriodToLastDayInputDate, toInputDate } from '@/utils/statementPeriod'
 import { HorizontalTriRingStat } from '@/features/transactions/components/HorizontalTriRingStat'
 import {
@@ -16,14 +16,9 @@ import type { ProjectedTransaction } from '../api/projectedTransactions.types'
 
 type PlanningAccount = 'joint' | 'josh' | 'anna'
 type ExpandedState = Record<string, boolean>
-
-type DragState = {
-  transaction: ProjectedTransaction
-  sourceAccount: PlanningAccount
-  sourceTransactionAccount: string
-  sourcePeriod: string
-  lastPeriodSwitchAt: number
-}
+type SectionEditModeState = Record<PlanningAccount, boolean>
+type SectionSelectionState = Record<PlanningAccount, string[]>
+type ModalMode = 'create' | 'edit'
 
 type FormState = {
   id?: number
@@ -40,10 +35,11 @@ type FormState = {
   status?: string
 }
 
-type SectionEditModeState = Record<PlanningAccount, boolean>
-type SectionSelectionState = Record<PlanningAccount, string[]>
-type ModalMode = 'create' | 'edit'
-type DropTarget = { account: PlanningAccount; category?: string } | null
+type MoveFormState = {
+  statementPeriod: string
+  account: PlanningAccount
+  category: string
+}
 
 const ACCOUNT_ORDER: PlanningAccount[] = ['joint', 'josh', 'anna']
 const ACCOUNT_LABELS: Record<PlanningAccount, string> = {
@@ -52,13 +48,17 @@ const ACCOUNT_LABELS: Record<PlanningAccount, string> = {
   anna: 'Anna',
 }
 
-const EDGE_SWITCH_COOLDOWN_MS = 500
-const EDGE_SWITCH_HOTZONE_PX = 64
-const VERTICAL_SCROLL_HOTZONE_PX = 90
-const VERTICAL_SCROLL_STEP_PX = 26
-const TOUCH_DRAG_THRESHOLD_PX = 22
-const TOUCH_HOLD_TO_DRAG_MS = 1000
-const TOUCH_CLICK_SUPPRESS_MS = 350
+const CRITICALITY_NAMES: Record<number, string> = {
+  1: 'Essential',
+  2: 'Nonessential',
+  3: 'Planned',
+}
+
+const CRITICALITY_IDS: Record<string, number> = {
+  Essential: 1,
+  Nonessential: 2,
+  Planned: 3,
+}
 
 const formatCurrency = (value: number) =>
   value.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
@@ -99,27 +99,6 @@ const parseCurrencyAmount = (value: string) => {
   const num = Number(value)
   return Number.isFinite(num) ? num : NaN
 }
-
-const CRITICALITY_NAMES: Record<number, string> = {
-  1: 'Essential',
-  2: 'Nonessential',
-  3: 'Planned',
-}
-
-const CRITICALITY_IDS: Record<string, number> = {
-  Essential: 1,
-  Nonessential: 2,
-  Planned: 3,
-}
-
-const TrashIcon = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <path d="M5 7h14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M9 7V5.8c0-.44.36-.8.8-.8h4.4c.44 0 .8.36.8.8V7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M8 7v10.2c0 .99.81 1.8 1.8 1.8h4.4c.99 0 1.8-.81 1.8-1.8V7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M10.5 10.5v5M13.5 10.5v5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-)
 
 const toFormState = (tx?: ProjectedTransaction): FormState => ({
   id: tx?.id,
@@ -206,9 +185,17 @@ const toCriticalitySummary = (
   }
 }
 
+const TrashIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M5 7h14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M9 7V5.8c0-.44.36-.8.8-.8h4.4c.44 0 .8.36.8.8V7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M8 7v10.2c0 .99.81 1.8 1.8 1.8h4.4c.99 0 1.8-.81 1.8-1.8V7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M10.5 10.5v5M13.5 10.5v5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+
 export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeriod?: string }) => {
-  const setSelectedPeriod = useStatementPeriodStore((s) => s.setSelectedPeriod)
-  const setAvailablePeriods = useStatementPeriodStore((s) => s.setAvailablePeriods)
+  const availablePeriods = useStatementPeriodStore((s) => s.availablePeriods)
 
   const jointQuery = useProjectedTransactions('joint', statementPeriod ? { statementPeriod } : undefined)
   const joshQuery = useProjectedTransactions('josh', statementPeriod ? { statementPeriod } : undefined)
@@ -217,12 +204,8 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
   const createMutation = useCreateProjectedTransaction()
   const deleteMutation = useDeleteProjectedTransaction()
   const updateMutation = useUpdateProjectedTransaction()
-  const planningSummary = usePlanningTopSummaries(statementPeriod)
 
   const [expanded, setExpanded] = useState<ExpandedState>({})
-  const [dragState, setDragState] = useState<DragState | null>(null)
-  const [activeDropAccount, setActiveDropAccount] = useState<PlanningAccount | null>(null)
-  const [activeDropCategoryKey, setActiveDropCategoryKey] = useState<string | null>(null)
   const [moveError, setMoveError] = useState<string | null>(null)
   const [blockedMoveMessage, setBlockedMoveMessage] = useState<string | null>(null)
   const [sectionEditMode, setSectionEditMode] = useState<SectionEditModeState>({
@@ -236,19 +219,22 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
     anna: [],
   })
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isMoveModalOpen, setIsMoveModalOpen] = useState(false)
   const [modalMode, setModalMode] = useState<ModalMode>('edit')
   const [selected, setSelected] = useState<ProjectedTransaction | undefined>(undefined)
   const [form, setForm] = useState<FormState>(() => toFormState())
   const [formError, setFormError] = useState<string | null>(null)
-  const [dragPointer, setDragPointer] = useState<{ x: number; y: number } | null>(null)
-  const [activeTouchId, setActiveTouchId] = useState<number | null>(null)
-  const touchDragRef = useRef<{ id: number; startX: number; startY: number; moved: boolean; activated: boolean } | null>(null)
-  const touchHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const suppressClickUntilRef = useRef(0)
-  const maybeSwitchPeriodFromPointerRef = useRef<(clientX: number, now: number) => void>(() => {})
-  const canCrossAccountTransferRef = useRef<(targetAccount: PlanningAccount) => boolean>(() => false)
-  const resolveDropTargetFromPointRef = useRef<(clientX: number, clientY: number) => DropTarget>(() => null)
-  const handleDropOnAccountRef = useRef<(targetAccount: PlanningAccount) => Promise<void>>(async () => {})
+  const [moveForm, setMoveForm] = useState<MoveFormState>({
+    statementPeriod: '',
+    account: 'joint',
+    category: '',
+  })
+  const [moveFormError, setMoveFormError] = useState<string | null>(null)
+  const movePeriodScrollRef = useRef<HTMLDivElement | null>(null)
+  const selectedMovePeriodRef = useRef<HTMLButtonElement | null>(null)
+
+  const planningSummary = usePlanningTopSummaries(statementPeriod)
+  const movePlanningSummary = usePlanningTopSummaries(isMoveModalOpen ? moveForm.statementPeriod : undefined)
 
   const busy = createMutation.isPending || deleteMutation.isPending || updateMutation.isPending
   const categories = config.categories
@@ -266,6 +252,29 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
 
   const isPending = Boolean(statementPeriod) && (jointQuery.isPending || joshQuery.isPending || annaQuery.isPending)
   const isError = jointQuery.isError || joshQuery.isError || annaQuery.isError
+
+  const movePeriods = useMemo(() => {
+    const selectedPeriod = selected?.statementPeriod?.trim()
+    const source = selectedPeriod ? [...availablePeriods, selectedPeriod] : availablePeriods
+    return sortedUniquePeriods(source)
+  }, [availablePeriods, selected?.statementPeriod])
+
+  const moveCategories = useMemo(() => {
+    const merged = new Set<string>(categories.map((category) => normalizeCategory(category)))
+    const selectedCategory = selected?.category ? normalizeCategory(selected.category) : ''
+    if (selectedCategory) merged.add(selectedCategory)
+    return Array.from(merged).sort((a, b) => a.localeCompare(b))
+  }, [categories, selected])
+
+  useEffect(() => {
+    if (!isMoveModalOpen) return
+    const container = movePeriodScrollRef.current
+    const selectedButton = selectedMovePeriodRef.current
+    if (!container || !selectedButton) return
+
+    const left = selectedButton.offsetLeft - (container.clientWidth / 2) + (selectedButton.clientWidth / 2)
+    container.scrollTo({ left: Math.max(0, left), behavior: 'auto' })
+  }, [isMoveModalOpen, moveForm.statementPeriod, movePeriods])
 
   const toggleCategory = (account: PlanningAccount, category: string) => {
     const key = `${account}:${category}`
@@ -345,6 +354,18 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
     setIsModalOpen(true)
   }
 
+  const openMoveModal = () => {
+    if (!selected || modalMode !== 'edit') return
+    setMoveForm({
+      statementPeriod: selected.statementPeriod,
+      account: (normalizeAccount(selected.account) as PlanningAccount) || 'joint',
+      category: normalizeCategory(selected.category),
+    })
+    setMoveFormError(null)
+    setIsModalOpen(false)
+    setIsMoveModalOpen(true)
+  }
+
   const toggleSectionEditMode = (account: PlanningAccount) => {
     setSectionEditMode((current) => {
       const next = !current[account]
@@ -385,6 +406,12 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
     if (busy) return
     setIsModalOpen(false)
     setSelected(undefined)
+  }
+
+  const closeMoveModal = () => {
+    if (busy) return
+    setIsMoveModalOpen(false)
+    setMoveFormError(null)
   }
 
   const handleCategoryChange = (event: ChangeEvent<HTMLSelectElement>) => {
@@ -430,6 +457,55 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
     }
   }
 
+  const onMoveSubmit = async (event: FormEvent) => {
+    event.preventDefault()
+    setMoveFormError(null)
+    if (!selected?.id) {
+      setMoveFormError('Missing transaction id.')
+      return
+    }
+    if (!moveForm.statementPeriod.trim() || !moveForm.category.trim()) {
+      setMoveFormError('Please choose statement period, account, and category.')
+      return
+    }
+
+    const sourceAccount = normalizeAccount(selected.account)
+    const targetAccount = moveForm.account
+    if (sourceAccount !== targetAccount && !(sourceAccount === 'joint' && (targetAccount === 'josh' || targetAccount === 'anna'))) {
+      setBlockedMoveMessage('Only Joint rows can be moved to Josh or Anna. Split rows in Josh/Anna cannot move across owners.')
+      return
+    }
+
+    const mappedPaymentMethod = defaultPaymentMethodMap[targetAccount] ?? ''
+    const targetDate = toProjectedDate(selected, moveForm.statementPeriod)
+    const payload: ProjectedTransaction = {
+      ...selected,
+      account: targetAccount,
+      category: normalizeCategory(moveForm.category),
+      statementPeriod: moveForm.statementPeriod,
+      projectedDate: targetDate,
+      transactionDate: targetDate,
+      paymentMethod:
+        targetAccount === sourceAccount
+          ? selected.paymentMethod ?? mappedPaymentMethod
+          : mappedPaymentMethod,
+    }
+
+    try {
+      if (sourceAccount === targetAccount) {
+        await updateMutation.mutateAsync({ id: String(selected.id), data: payload })
+      } else {
+        await deleteMutation.mutateAsync(String(selected.id))
+        await createMutation.mutateAsync(payload)
+      }
+      setIsMoveModalOpen(false)
+      setSelected(undefined)
+      setMoveFormError(null)
+    } catch (error) {
+      setMoveFormError(error instanceof Error ? error.message : 'Failed to move projected transaction.')
+    }
+  }
+
   const deleteSelectedProjection = async () => {
     const id = selected?.id
     if (modalMode !== 'edit' || id == null || busy) return
@@ -444,305 +520,11 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
     }
   }
 
-  const ensurePeriodExists = (period: string) => {
-    const existing = useStatementPeriodStore.getState().availablePeriods
-    if (existing.includes(period)) return
-    setAvailablePeriods(sortedUniquePeriods([...existing, period]))
-  }
-
-  const maybeSwitchPeriodFromPointer = (clientX: number, now: number) => {
-    if (!dragState || !statementPeriod) return
-    if (now - dragState.lastPeriodSwitchAt < EDGE_SWITCH_COOLDOWN_MS) return
-
-    const viewportWidth = window.innerWidth
-    const nearLeft = clientX <= EDGE_SWITCH_HOTZONE_PX
-    const nearRight = clientX >= viewportWidth - EDGE_SWITCH_HOTZONE_PX
-    if (!nearLeft && !nearRight) return
-
-    const delta = nearLeft ? -1 : 1
-    const targetPeriod = addMonthsToStatementPeriod(statementPeriod, delta)
-    if (!targetPeriod) return
-
-    ensurePeriodExists(targetPeriod)
-    setSelectedPeriod(targetPeriod)
-    setDragState((current) => (current ? { ...current, lastPeriodSwitchAt: now } : current))
-  }
-
-  const maybeAutoScrollFromPointer = (clientY: number) => {
-    const main = document.querySelector('main') as HTMLElement | null
-    if (!main) return
-
-    const rect = main.getBoundingClientRect()
-    const nearTop = clientY <= rect.top + VERTICAL_SCROLL_HOTZONE_PX
-    const nearBottom = clientY >= rect.bottom - VERTICAL_SCROLL_HOTZONE_PX
-
-    if (!nearTop && !nearBottom) return
-
-    if (nearTop && main.scrollTop > 0) {
-      main.scrollTop = Math.max(0, main.scrollTop - VERTICAL_SCROLL_STEP_PX)
-      return
-    }
-
-    if (nearBottom && main.scrollTop + main.clientHeight < main.scrollHeight) {
-      main.scrollTop = Math.min(main.scrollHeight, main.scrollTop + VERTICAL_SCROLL_STEP_PX)
-    }
-  }
-
-  const canCrossAccountTransfer = (targetAccount: PlanningAccount) => {
-    if (!dragState) return false
-    return (
-      dragState.sourceAccount === 'joint' &&
-      dragState.sourceTransactionAccount === 'joint' &&
-      (targetAccount === 'josh' || targetAccount === 'anna')
-    )
-  }
-
-  const toPlanningAccount = (value: string | null): PlanningAccount | null => {
-    if (!value) return null
-    return ACCOUNT_ORDER.includes(value as PlanningAccount) ? (value as PlanningAccount) : null
-  }
-
-  const resolveDropTargetFromPoint = (clientX: number, clientY: number): DropTarget => {
-    const element = document.elementFromPoint(clientX, clientY) as HTMLElement | null
-    if (!element) return null
-
-    const categoryTarget = element.closest('[data-drop-category][data-drop-account]') as HTMLElement | null
-    if (categoryTarget) {
-      const account = toPlanningAccount(categoryTarget.dataset.dropAccount ?? null)
-      const category = categoryTarget.dataset.dropCategory
-      if (account && category) {
-        return { account, category }
-      }
-    }
-
-    const accountTarget = element.closest('[data-drop-account]') as HTMLElement | null
-    if (accountTarget) {
-      const account = toPlanningAccount(accountTarget.dataset.dropAccount ?? null)
-      if (account) {
-        return { account }
-      }
-    }
-
-    return null
-  }
-
-  const clearTouchHoldTimer = () => {
-    if (touchHoldTimerRef.current == null) return
-    clearTimeout(touchHoldTimerRef.current)
-    touchHoldTimerRef.current = null
-  }
-
-  useEffect(() => {
-    maybeSwitchPeriodFromPointerRef.current = maybeSwitchPeriodFromPointer
-    canCrossAccountTransferRef.current = canCrossAccountTransfer
-    resolveDropTargetFromPointRef.current = resolveDropTargetFromPoint
-    handleDropOnAccountRef.current = handleDropOnAccount
-  })
-
-  useEffect(() => {
-    return () => {
-      clearTouchHoldTimer()
-    }
-  }, [])
-
-  useEffect(() => {
-    if (activeTouchId == null) return
-
-    const onTouchMove = (event: globalThis.TouchEvent) => {
-      const touch = Array.from(event.touches).find((item) => item.identifier === activeTouchId)
-      if (!touch) return
-
-      const touchDrag = touchDragRef.current
-      if (!touchDrag) return
-
-      if (!touchDrag.activated) {
-        const deltaX = touch.clientX - touchDrag.startX
-        const deltaY = touch.clientY - touchDrag.startY
-        if (Math.hypot(deltaX, deltaY) >= TOUCH_DRAG_THRESHOLD_PX) {
-          clearTouchHoldTimer()
-          touchDragRef.current = null
-          setActiveTouchId(null)
-          setDragPointer(null)
-        }
-        return
-      }
-
-      if (!touchDrag.moved) {
-        touchDragRef.current = { ...touchDrag, moved: true }
-      }
-
-      setDragPointer({ x: touch.clientX, y: touch.clientY })
-      maybeSwitchPeriodFromPointerRef.current(touch.clientX, event.timeStamp)
-
-      if (!dragState) return
-
-      const target = resolveDropTargetFromPointRef.current(touch.clientX, touch.clientY)
-      if (!target) {
-        setActiveDropAccount(null)
-        setActiveDropCategoryKey(null)
-        return
-      }
-
-      if (
-        target.account !== dragState.sourceAccount &&
-        !canCrossAccountTransferRef.current(target.account)
-      ) {
-        setActiveDropAccount(null)
-        setActiveDropCategoryKey(null)
-        return
-      }
-
-      setActiveDropAccount(target.account)
-      setActiveDropCategoryKey(target.category ? `${target.account}:${target.category}` : null)
-    }
-
-    const onTouchEnd = (event: globalThis.TouchEvent) => {
-      const touch = Array.from(event.changedTouches).find((item) => item.identifier === activeTouchId)
-      if (!touch) return
-
-      const touchDrag = touchDragRef.current
-      if (!touchDrag) return
-
-      clearTouchHoldTimer()
-      touchDragRef.current = null
-      setActiveTouchId(null)
-
-      if (!touchDrag.activated) {
-        setActiveDropAccount(null)
-        setActiveDropCategoryKey(null)
-        setDragPointer(null)
-        setDragState(null)
-        return
-      }
-
-      suppressClickUntilRef.current = event.timeStamp + TOUCH_CLICK_SUPPRESS_MS
-
-      const target = resolveDropTargetFromPointRef.current(touch.clientX, touch.clientY)
-      if (!target) {
-        setActiveDropAccount(null)
-        setActiveDropCategoryKey(null)
-        setDragPointer(null)
-        setDragState(null)
-        return
-      }
-
-      void handleDropOnAccountRef.current(target.account)
-    }
-
-    const onTouchCancel = (event: globalThis.TouchEvent) => {
-      const touch = Array.from(event.changedTouches).find((item) => item.identifier === activeTouchId)
-      if (!touch) return
-      clearTouchHoldTimer()
-      touchDragRef.current = null
-      setActiveTouchId(null)
-      setActiveDropAccount(null)
-      setActiveDropCategoryKey(null)
-      setDragPointer(null)
-      setDragState(null)
-    }
-
-    window.addEventListener('touchmove', onTouchMove, { passive: true })
-    window.addEventListener('touchend', onTouchEnd, { passive: true })
-    window.addEventListener('touchcancel', onTouchCancel, { passive: true })
-
-    return () => {
-      window.removeEventListener('touchmove', onTouchMove)
-      window.removeEventListener('touchend', onTouchEnd)
-      window.removeEventListener('touchcancel', onTouchCancel)
-    }
-  }, [activeTouchId, dragState])
-
-  useEffect(() => {
-    if (!dragState || !dragPointer || !touchDragRef.current?.activated) return
-
-    let frameId = 0
-
-    const tick = () => {
-      const main = document.querySelector('main') as HTMLElement | null
-      if (main) {
-        const rect = main.getBoundingClientRect()
-        const nearTop = dragPointer.y <= rect.top + VERTICAL_SCROLL_HOTZONE_PX
-        const nearBottom = dragPointer.y >= rect.bottom - VERTICAL_SCROLL_HOTZONE_PX
-
-        if (nearTop && main.scrollTop > 0) {
-          main.scrollTop = Math.max(0, main.scrollTop - VERTICAL_SCROLL_STEP_PX)
-        } else if (nearBottom && main.scrollTop + main.clientHeight < main.scrollHeight) {
-          main.scrollTop = Math.min(main.scrollHeight, main.scrollTop + VERTICAL_SCROLL_STEP_PX)
-        }
-      }
-
-      frameId = window.requestAnimationFrame(tick)
-    }
-
-    frameId = window.requestAnimationFrame(tick)
-    return () => window.cancelAnimationFrame(frameId)
-  }, [dragPointer, dragState])
-
-  async function handleDropOnAccount(targetAccount: PlanningAccount) {
-    if (!dragState || !statementPeriod || busy) return
-    const targetPeriod = statementPeriod
-    const sourceId = dragState.transaction.id
-    if (sourceId == null) {
-      setMoveError('Unable to move a transaction without an id.')
-      return
-    }
-
-    const normalizedSourceCategory = normalizeCategory(dragState.transaction.category)
-
-    if (targetAccount === dragState.sourceAccount && targetPeriod === dragState.sourcePeriod) {
-      setActiveDropCategoryKey(null)
-      setActiveDropAccount(null)
-      setDragPointer(null)
-      setDragState(null)
-      return
-    }
-
-    if (targetAccount !== dragState.sourceAccount && !canCrossAccountTransfer(targetAccount)) {
-      setBlockedMoveMessage('Only Joint rows can be moved to Josh or Anna. Split rows in Josh/Anna cannot move across owners.')
-      setActiveDropCategoryKey(null)
-      setActiveDropAccount(null)
-      setDragPointer(null)
-      setDragState(null)
-      return
-    }
-
-    const mappedPaymentMethod = config.defaultPaymentMethodMap[targetAccount] ?? ''
-    const payload: ProjectedTransaction = {
-      name: dragState.transaction.name,
-      description: dragState.transaction.description,
-      amount: Number(dragState.transaction.amount) || 0,
-      category: normalizedSourceCategory,
-      criticality_id: dragState.transaction.criticality_id ?? 2,
-      paymentMethod:
-        targetAccount === dragState.sourceAccount
-          ? dragState.transaction.paymentMethod ?? mappedPaymentMethod
-          : mappedPaymentMethod,
-      account: targetAccount,
-      statementPeriod: targetPeriod,
-      projectedDate: toProjectedDate(dragState.transaction, targetPeriod),
-      transactionDate: toProjectedDate(dragState.transaction, targetPeriod),
-      status: dragState.transaction.status,
-    }
-
-    setMoveError(null)
-    try {
-      await deleteMutation.mutateAsync(String(sourceId))
-      await createMutation.mutateAsync(payload)
-    } catch (error) {
-      setMoveError(error instanceof Error ? error.message : 'Failed to move projected transaction.')
-    } finally {
-      setActiveDropCategoryKey(null)
-      setActiveDropAccount(null)
-      setDragPointer(null)
-      setDragState(null)
-    }
-  }
-
   if (!statementPeriod) {
     return <p className="tt-empty">Select a statement period to manage projected transactions.</p>
   }
 
-  if (isPending && !dragState) {
+  if (isPending) {
     return <p className="tt-empty">Loading projected transactions...</p>
   }
 
@@ -751,53 +533,11 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
   }
 
   return (
-    <section
-      className={`tt-plan-nested ${dragState ? 'tt-plan-nested-dragging' : ''}`}
-      onDragOver={(event) => {
-        event.preventDefault()
-        maybeSwitchPeriodFromPointer(event.clientX, event.timeStamp)
-        maybeAutoScrollFromPointer(event.clientY)
-      }}
-    >
+    <section className="tt-plan-nested">
       {moveError ? <p className="tt-error">{moveError}</p> : null}
-      {isPending && dragState ? <p className="tt-empty">Switching statement period… keep dragging to adjust.</p> : null}
-      {dragState ? (
-        <p className="tt-plan-nested-drag-indicator">
-          Moving: {dragState.transaction.description || dragState.transaction.name || 'Projected transaction'}
-        </p>
-      ) : null}
-      {dragState && dragPointer ? (
-        <div
-          className="tt-plan-nested-drag-ghost"
-          style={{
-            transform: `translate(${dragPointer.x}px, ${dragPointer.y}px)`,
-          }}
-        >
-          {dragState.transaction.description || dragState.transaction.name || 'Projected transaction'}
-        </div>
-      ) : null}
       <div className="tt-plan-nested-sections">
         {ACCOUNT_ORDER.map((account) => (
-          <section
-            key={account}
-            className={`tt-plan-nested-section ${activeDropAccount === account ? 'tt-plan-nested-section-active' : ''}`}
-            data-drop-account={account}
-            onDragOver={(event) => {
-              if (!dragState || account === dragState.sourceAccount || canCrossAccountTransfer(account)) {
-                event.preventDefault()
-                setActiveDropAccount(account)
-                setActiveDropCategoryKey(null)
-              }
-            }}
-            onDragLeave={() => {
-              setActiveDropAccount((current) => (current === account ? null : current))
-            }}
-            onDrop={(event) => {
-              event.preventDefault()
-              setActiveDropCategoryKey(null)
-              void handleDropOnAccount(account)
-            }}
-          >
+          <section key={account} className="tt-plan-nested-section">
             <div className="tt-plan-nested-section-toolbar">
               <h3 className="tt-plan-nested-header">{ACCOUNT_LABELS[account]}</h3>
               <div className="tt-plan-nested-section-actions">
@@ -844,26 +584,7 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
                   const rowKey = `${account}:${row.category}`
                   const isExpanded = expanded[rowKey] ?? true
                   return (
-                    <div
-                      key={rowKey}
-                      className={`tt-plan-nested-category ${activeDropCategoryKey === rowKey ? 'tt-plan-nested-category-active' : ''}`}
-                      data-drop-account={account}
-                      data-drop-category={row.category}
-                      onDragOver={(event) => {
-                        event.preventDefault()
-                        event.stopPropagation()
-                        setActiveDropAccount(account)
-                        setActiveDropCategoryKey(rowKey)
-                      }}
-                      onDragLeave={() => {
-                        setActiveDropCategoryKey((current) => (current === rowKey ? null : current))
-                      }}
-                      onDrop={(event) => {
-                        event.preventDefault()
-                        event.stopPropagation()
-                        void handleDropOnAccount(account)
-                      }}
-                    >
+                    <div key={rowKey} className="tt-plan-nested-category">
                       <button
                         type="button"
                         className="tt-plan-nested-category-toggle"
@@ -881,14 +602,6 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
                             const projectedId = tx.id != null ? String(tx.id) : undefined
                             const editModeForSection = sectionEditMode[account]
                             const selectedInSection = Boolean(projectedId && sectionSelection[account].includes(projectedId))
-                            const isDraggingRow = Boolean(
-                              dragState &&
-                                dragState.sourceAccount === account &&
-                                (
-                                  (projectedId && dragState.transaction.id != null && projectedId === String(dragState.transaction.id)) ||
-                                  (dragState.transaction.id == null && dragState.transaction === tx)
-                                )
-                            )
                             const isSplitJointRow =
                               account !== 'joint' &&
                               (normalizeAccount(tx.account) === 'joint' ||
@@ -897,12 +610,10 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
                             return (
                               <div
                                 key={key}
-                                className={`tt-plan-nested-item ${isSplitJointRow ? 'tt-plan-nested-item-split' : ''} ${isDraggingRow ? 'tt-plan-nested-item-dragging' : ''}`}
-                                draggable={!busy && !editModeForSection}
+                                className={`tt-plan-nested-item ${isSplitJointRow ? 'tt-plan-nested-item-split' : ''}`}
                                 role="button"
                                 tabIndex={0}
-                                onClick={(event) => {
-                                  if (event.timeStamp < suppressClickUntilRef.current) return
+                                onClick={() => {
                                   if (editModeForSection) {
                                     if (!projectedId) return
                                     toggleSectionRowSelection(account, projectedId)
@@ -920,67 +631,6 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
                                     }
                                     openEdit(tx, account)
                                   }
-                                }}
-                                onDragStart={() => {
-                                  if (editModeForSection) return
-                                  setDragPointer(null)
-                                  setDragState({
-                                    transaction: tx,
-                                    sourceAccount: account,
-                                    sourceTransactionAccount: normalizeAccount(tx.account),
-                                    sourcePeriod: statementPeriod,
-                                    lastPeriodSwitchAt: 0,
-                                  })
-                                  setMoveError(null)
-                                  setBlockedMoveMessage(null)
-                                }}
-                                onDragEnd={() => {
-                                  setActiveDropCategoryKey(null)
-                                  setActiveDropAccount(null)
-                                  setDragPointer(null)
-                                  setDragState(null)
-                                }}
-                                onTouchStart={(event: TouchEvent<HTMLDivElement>) => {
-                                  if (busy || editModeForSection || event.touches.length !== 1) return
-                                  clearTouchHoldTimer()
-                                  const touch = event.touches[0]
-                                  const touchId = touch.identifier
-                                  const startX = touch.clientX
-                                  const startY = touch.clientY
-                                  touchDragRef.current = {
-                                    id: touchId,
-                                    startX,
-                                    startY,
-                                    moved: false,
-                                    activated: false,
-                                  }
-                                  setActiveTouchId(touchId)
-                                  touchHoldTimerRef.current = setTimeout(() => {
-                                    const currentTouch = touchDragRef.current
-                                    if (!currentTouch || currentTouch.id !== touchId) return
-                                    touchDragRef.current = { ...currentTouch, activated: true }
-                                    setDragPointer({ x: startX, y: startY })
-                                    setActiveDropAccount(account)
-                                    setActiveDropCategoryKey(rowKey)
-                                    setDragState({
-                                      transaction: tx,
-                                      sourceAccount: account,
-                                      sourceTransactionAccount: normalizeAccount(tx.account),
-                                      sourcePeriod: statementPeriod,
-                                      lastPeriodSwitchAt: 0,
-                                    })
-                                    setMoveError(null)
-                                    setBlockedMoveMessage(null)
-                                  }, TOUCH_HOLD_TO_DRAG_MS)
-                                }}
-                                onTouchCancel={() => {
-                                  clearTouchHoldTimer()
-                                  touchDragRef.current = null
-                                  setActiveTouchId(null)
-                                  setActiveDropAccount(null)
-                                  setActiveDropCategoryKey(null)
-                                  setDragPointer(null)
-                                  setDragState(null)
                                 }}
                               >
                                 {editModeForSection ? (
@@ -1018,16 +668,26 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
         title={modalMode === 'create' ? 'Add projected transaction' : 'Edit projected transaction'}
         onClose={closeModal}
         headerActions={modalMode === 'edit' ? (
-          <button
-            type="button"
-            className="tt-modal-icon-button tt-modal-icon-button-danger"
-            aria-label="Delete projected transaction"
-            title="Delete projected transaction"
-            onClick={() => { void deleteSelectedProjection() }}
-            disabled={busy || !selected?.id}
-          >
-            <TrashIcon />
-          </button>
+          <>
+            <button
+              type="button"
+              className="tt-modal-icon-button"
+              onClick={openMoveModal}
+              disabled={busy || !selected?.id}
+            >
+              Move
+            </button>
+            <button
+              type="button"
+              className="tt-modal-icon-button tt-modal-icon-button-danger"
+              aria-label="Delete projected transaction"
+              title="Delete projected transaction"
+              onClick={() => { void deleteSelectedProjection() }}
+              disabled={busy || !selected?.id}
+            >
+              <TrashIcon />
+            </button>
+          </>
         ) : undefined}
       >
         <form className="tt-proj-form" onSubmit={onSubmit}>
@@ -1122,6 +782,102 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
               {modalMode === 'create'
                 ? (createMutation.isPending ? 'Creating…' : 'Create')
                 : (updateMutation.isPending ? 'Saving…' : 'Save')}
+            </button>
+          </div>
+        </form>
+      </Modal>
+      <Modal
+        isOpen={isMoveModalOpen}
+        title="Move projected transaction"
+        onClose={closeMoveModal}
+      >
+        <form className="tt-proj-form" onSubmit={onMoveSubmit}>
+          {moveFormError ? <div className="tt-error">{moveFormError}</div> : null}
+          {!movePlanningSummary.isPending && !movePlanningSummary.isError ? (
+            moveForm.account === 'joint' ? (
+              <>
+                <HorizontalTriRingStat
+                  planned={toCriticalitySummary(movePlanningSummary.model, 'josh', 'planned')}
+                  essential={toCriticalitySummary(movePlanningSummary.model, 'josh', 'essential')}
+                  nonessential={toCriticalitySummary(movePlanningSummary.model, 'josh', 'nonessential')}
+                />
+                <HorizontalTriRingStat
+                  planned={toCriticalitySummary(movePlanningSummary.model, 'anna', 'planned')}
+                  essential={toCriticalitySummary(movePlanningSummary.model, 'anna', 'essential')}
+                  nonessential={toCriticalitySummary(movePlanningSummary.model, 'anna', 'nonessential')}
+                />
+              </>
+            ) : (
+              <HorizontalTriRingStat
+                planned={toCriticalitySummary(movePlanningSummary.model, moveForm.account, 'planned')}
+                essential={toCriticalitySummary(movePlanningSummary.model, moveForm.account, 'essential')}
+                nonessential={toCriticalitySummary(movePlanningSummary.model, moveForm.account, 'nonessential')}
+              />
+            )
+          ) : null}
+          <label className="tt-proj-field">
+            <span className="tt-proj-label">Statement period</span>
+            <div
+              ref={movePeriodScrollRef}
+              className="tt-plan-period-scroll"
+              role="listbox"
+              aria-label="Move statement period"
+            >
+              {movePeriods.map((period) => (
+                <button
+                  key={period}
+                  type="button"
+                  ref={moveForm.statementPeriod === period ? selectedMovePeriodRef : null}
+                  className={`tt-plan-period-pill ${moveForm.statementPeriod === period ? 'tt-plan-period-pill-active' : ''}`}
+                  onClick={() => setMoveForm((current) => ({ ...current, statementPeriod: period }))}
+                >
+                  {period}
+                </button>
+              ))}
+            </div>
+          </label>
+          <div className="tt-proj-form-grid">
+            <label className="tt-proj-field">
+              <span className="tt-proj-label">Account</span>
+              <select
+                className="tt-proj-input"
+                value={moveForm.account}
+                onChange={(event) => setMoveForm((current) => ({ ...current, account: event.target.value as PlanningAccount }))}
+              >
+                {ACCOUNT_ORDER.map((account) => (
+                  <option key={account} value={account}>{ACCOUNT_LABELS[account]}</option>
+                ))}
+              </select>
+            </label>
+            <label className="tt-proj-field">
+              <span className="tt-proj-label">Category</span>
+              <select
+                className="tt-proj-input"
+                value={moveForm.category}
+                onChange={(event) => setMoveForm((current) => ({ ...current, category: normalizeCategory(event.target.value) }))}
+              >
+                {moveCategories.map((category) => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="tt-plan-move-summary">
+            <div className="tt-plan-move-summary-row">
+              <span className="tt-plan-move-summary-label">Projected Name</span>
+              <strong>{selected?.description || selected?.name || 'Projected transaction'}</strong>
+            </div>
+            <div className="tt-plan-move-summary-row">
+              <span className="tt-plan-move-summary-label">Amount</span>
+              <strong>{formatCurrency(Number(selected?.amount) || 0)}</strong>
+            </div>
+          </div>
+          <div className="tt-proj-form-actions">
+            <button type="button" className="tt-proj-secondary" onClick={closeMoveModal} disabled={busy}>
+              Cancel
+            </button>
+            <button type="submit" className="tt-proj-primary" disabled={busy}>
+              {busy ? 'Moving…' : 'Move'}
             </button>
           </div>
         </form>

@@ -1703,48 +1703,6 @@ html, body, #root, .main-layout, .dashboard-page-root {
   gap: 10px;
 }
 
-.tt-plan-nested-drag-indicator {
-  color: rgba(141, 176, 255, 0.95);
-  font-size: 0.86rem;
-  font-weight: 700;
-}
-
-.tt-plan-nested-drag-ghost {
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 70;
-  pointer-events: none;
-  max-width: min(70vw, 360px);
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: rgba(20, 24, 35, 0.92);
-  border: 1px solid rgba(141, 176, 255, 0.74);
-  color: rgba(230, 238, 248, 0.98);
-  font-size: 0.82rem;
-  font-weight: 800;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
-  animation: tt-plan-drag-pulse 0.8s ease-in-out infinite alternate;
-}
-
-@keyframes tt-plan-drag-pulse {
-  from {
-    filter: brightness(0.96);
-  }
-  to {
-    filter: brightness(1.08);
-  }
-}
-
-.tt-plan-nested-dragging,
-.tt-plan-nested-dragging * {
-  user-select: none;
-  -webkit-user-select: none;
-}
-
 .tt-plan-nested-sections {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1867,32 +1825,10 @@ html, body, #root, .main-layout, .dashboard-page-root {
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(0, 0, 0, 0.24);
-  cursor: grab;
+  cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
-  touch-action: pan-y;
-}
-
-.tt-plan-nested-item-dragging {
-  border-color: rgba(141, 176, 255, 0.82);
-  box-shadow:
-    0 0 0 2px rgba(141, 176, 255, 0.34),
-    0 6px 16px rgba(0, 0, 0, 0.24);
-  background: rgba(141, 176, 255, 0.22);
-  opacity: 1;
-  animation: tt-plan-row-armed-pulse 0.7s ease-in-out infinite alternate;
-}
-
-@keyframes tt-plan-row-armed-pulse {
-  from {
-    transform: translateZ(0) scale(1);
-    filter: brightness(0.98);
-  }
-  to {
-    transform: translateZ(0) scale(1.01);
-    filter: brightness(1.08);
-  }
 }
 
 .tt-plan-nested-item-split {
@@ -1907,7 +1843,52 @@ html, body, #root, .main-layout, .dashboard-page-root {
 }
 
 .tt-plan-nested-item:active {
-  cursor: grabbing;
+  filter: brightness(1.05);
+}
+
+.tt-plan-period-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 0;
+}
+
+.tt-plan-period-pill {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--tt-color-text);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 12px;
+  white-space: nowrap;
+}
+
+.tt-plan-period-pill-active {
+  border-color: rgba(141, 176, 255, 0.74);
+  background: rgba(141, 176, 255, 0.18);
+  color: rgba(230, 238, 248, 0.98);
+}
+
+.tt-plan-move-summary {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.tt-plan-move-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.tt-plan-move-summary-label {
+  font-size: 12px;
+  color: rgba(173, 183, 194, 0.9);
 }
 
 .tt-plan-nested-item-title {
