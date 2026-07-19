@@ -1557,6 +1557,27 @@ html, body, #root, .main-layout, .dashboard-page-root {
   border-color: rgba(141, 176, 255, 0.55);
 }
 
+.tt-plan-move-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  font-weight: 800;
+  border-color: rgba(141, 176, 255, 0.42);
+  background: rgba(141, 176, 255, 0.14);
+  transition: background 0.16s ease, border-color 0.16s ease;
+}
+
+.tt-plan-move-trigger:hover {
+  background: rgba(141, 176, 255, 0.2);
+}
+
+.tt-plan-move-trigger:focus {
+  box-shadow: 0 0 0 4px rgba(141, 176, 255, 0.14);
+  border-color: rgba(141, 176, 255, 0.62);
+}
+
 .tt-proj-money {
   position: relative;
   display: flex;

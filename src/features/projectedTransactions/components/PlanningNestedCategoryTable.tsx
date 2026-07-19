@@ -471,10 +471,6 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
 
     const sourceAccount = normalizeAccount(selected.account)
     const targetAccount = moveForm.account
-    if (sourceAccount !== targetAccount && !(sourceAccount === 'joint' && (targetAccount === 'josh' || targetAccount === 'anna'))) {
-      setBlockedMoveMessage('Only Joint rows can be moved to Josh or Anna. Split rows in Josh/Anna cannot move across owners.')
-      return
-    }
 
     const mappedPaymentMethod = defaultPaymentMethodMap[targetAccount] ?? ''
     const targetDate = toProjectedDate(selected, moveForm.statementPeriod)
@@ -668,34 +664,35 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
         title={modalMode === 'create' ? 'Add projected transaction' : 'Edit projected transaction'}
         onClose={closeModal}
         headerActions={modalMode === 'edit' ? (
-          <>
-            <button
-              type="button"
-              className="tt-modal-icon-button"
-              onClick={openMoveModal}
-              disabled={busy || !selected?.id}
-            >
-              Move
-            </button>
-            <button
-              type="button"
-              className="tt-modal-icon-button tt-modal-icon-button-danger"
-              aria-label="Delete projected transaction"
-              title="Delete projected transaction"
-              onClick={() => { void deleteSelectedProjection() }}
-              disabled={busy || !selected?.id}
-            >
-              <TrashIcon />
-            </button>
-          </>
+          <button
+            type="button"
+            className="tt-modal-icon-button tt-modal-icon-button-danger"
+            aria-label="Delete projected transaction"
+            title="Delete projected transaction"
+            onClick={() => { void deleteSelectedProjection() }}
+            disabled={busy || !selected?.id}
+          >
+            <TrashIcon />
+          </button>
         ) : undefined}
       >
         <form className="tt-proj-form" onSubmit={onSubmit}>
           {formError ? <div className="tt-error">{formError}</div> : null}
           <div className="tt-proj-form-grid">
             <label className="tt-proj-field">
-              <span className="tt-proj-label">Statement period</span>
-              <input className="tt-proj-input" value={form.statementPeriod} disabled readOnly />
+              <span className="tt-proj-label">{modalMode === 'edit' ? 'Move' : 'Statement period'}</span>
+              {modalMode === 'edit' ? (
+                <button
+                  type="button"
+                  className="tt-proj-input tt-plan-move-trigger"
+                  onClick={openMoveModal}
+                  disabled={busy || !selected?.id}
+                >
+                  Move transaction
+                </button>
+              ) : (
+                <input className="tt-proj-input" value={form.statementPeriod} disabled readOnly />
+              )}
             </label>
 
             <label className="tt-proj-field">
