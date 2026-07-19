@@ -43,6 +43,7 @@ type FormState = {
 type SectionEditModeState = Record<PlanningAccount, boolean>
 type SectionSelectionState = Record<PlanningAccount, string[]>
 type ModalMode = 'create' | 'edit'
+type DropTarget = { account: PlanningAccount; category?: string } | null
 
 const ACCOUNT_ORDER: PlanningAccount[] = ['joint', 'josh', 'anna']
 const ACCOUNT_LABELS: Record<PlanningAccount, string> = {
@@ -240,9 +241,14 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
   const [form, setForm] = useState<FormState>(() => toFormState())
   const [formError, setFormError] = useState<string | null>(null)
   const [dragPointer, setDragPointer] = useState<{ x: number; y: number } | null>(null)
+  const [activeTouchId, setActiveTouchId] = useState<number | null>(null)
   const touchDragRef = useRef<{ id: number; startX: number; startY: number; moved: boolean; activated: boolean } | null>(null)
   const touchHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const suppressClickUntilRef = useRef(0)
+  const maybeSwitchPeriodFromPointerRef = useRef<(clientX: number, now: number) => void>(() => {})
+  const canCrossAccountTransferRef = useRef<(targetAccount: PlanningAccount) => boolean>(() => false)
+  const resolveDropTargetFromPointRef = useRef<(clientX: number, clientY: number) => DropTarget>(() => null)
+  const handleDropOnAccountRef = useRef<(targetAccount: PlanningAccount) => Promise<void>>(async () => {})
 
   const busy = createMutation.isPending || deleteMutation.isPending || updateMutation.isPending
   const categories = config.categories
@@ -496,7 +502,7 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
     return ACCOUNT_ORDER.includes(value as PlanningAccount) ? (value as PlanningAccount) : null
   }
 
-  const resolveDropTargetFromPoint = (clientX: number, clientY: number) => {
+  const resolveDropTargetFromPoint = (clientX: number, clientY: number): DropTarget => {
     const element = document.elementFromPoint(clientX, clientY) as HTMLElement | null
     if (!element) return null
 
@@ -527,10 +533,124 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
   }
 
   useEffect(() => {
+    maybeSwitchPeriodFromPointerRef.current = maybeSwitchPeriodFromPointer
+    canCrossAccountTransferRef.current = canCrossAccountTransfer
+    resolveDropTargetFromPointRef.current = resolveDropTargetFromPoint
+    handleDropOnAccountRef.current = handleDropOnAccount
+  })
+
+  useEffect(() => {
     return () => {
       clearTouchHoldTimer()
     }
   }, [])
+
+  useEffect(() => {
+    if (activeTouchId == null) return
+
+    const onTouchMove = (event: globalThis.TouchEvent) => {
+      const touch = Array.from(event.touches).find((item) => item.identifier === activeTouchId)
+      if (!touch) return
+
+      const touchDrag = touchDragRef.current
+      if (!touchDrag) return
+
+      if (!touchDrag.activated) {
+        const deltaX = touch.clientX - touchDrag.startX
+        const deltaY = touch.clientY - touchDrag.startY
+        if (Math.hypot(deltaX, deltaY) >= TOUCH_DRAG_THRESHOLD_PX) {
+          clearTouchHoldTimer()
+          touchDragRef.current = null
+          setActiveTouchId(null)
+          setDragPointer(null)
+        }
+        return
+      }
+
+      if (!touchDrag.moved) {
+        touchDragRef.current = { ...touchDrag, moved: true }
+      }
+
+      setDragPointer({ x: touch.clientX, y: touch.clientY })
+      maybeSwitchPeriodFromPointerRef.current(touch.clientX, event.timeStamp)
+
+      if (!dragState) return
+
+      const target = resolveDropTargetFromPointRef.current(touch.clientX, touch.clientY)
+      if (!target) {
+        setActiveDropAccount(null)
+        setActiveDropCategoryKey(null)
+        return
+      }
+
+      if (
+        target.account !== dragState.sourceAccount &&
+        !canCrossAccountTransferRef.current(target.account)
+      ) {
+        setActiveDropAccount(null)
+        setActiveDropCategoryKey(null)
+        return
+      }
+
+      setActiveDropAccount(target.account)
+      setActiveDropCategoryKey(target.category ? `${target.account}:${target.category}` : null)
+    }
+
+    const onTouchEnd = (event: globalThis.TouchEvent) => {
+      const touch = Array.from(event.changedTouches).find((item) => item.identifier === activeTouchId)
+      if (!touch) return
+
+      const touchDrag = touchDragRef.current
+      if (!touchDrag) return
+
+      clearTouchHoldTimer()
+      touchDragRef.current = null
+      setActiveTouchId(null)
+
+      if (!touchDrag.activated) {
+        setActiveDropAccount(null)
+        setActiveDropCategoryKey(null)
+        setDragPointer(null)
+        setDragState(null)
+        return
+      }
+
+      suppressClickUntilRef.current = event.timeStamp + TOUCH_CLICK_SUPPRESS_MS
+
+      const target = resolveDropTargetFromPointRef.current(touch.clientX, touch.clientY)
+      if (!target) {
+        setActiveDropAccount(null)
+        setActiveDropCategoryKey(null)
+        setDragPointer(null)
+        setDragState(null)
+        return
+      }
+
+      void handleDropOnAccountRef.current(target.account)
+    }
+
+    const onTouchCancel = (event: globalThis.TouchEvent) => {
+      const touch = Array.from(event.changedTouches).find((item) => item.identifier === activeTouchId)
+      if (!touch) return
+      clearTouchHoldTimer()
+      touchDragRef.current = null
+      setActiveTouchId(null)
+      setActiveDropAccount(null)
+      setActiveDropCategoryKey(null)
+      setDragPointer(null)
+      setDragState(null)
+    }
+
+    window.addEventListener('touchmove', onTouchMove, { passive: true })
+    window.addEventListener('touchend', onTouchEnd, { passive: true })
+    window.addEventListener('touchcancel', onTouchCancel, { passive: true })
+
+    return () => {
+      window.removeEventListener('touchmove', onTouchMove)
+      window.removeEventListener('touchend', onTouchEnd)
+      window.removeEventListener('touchcancel', onTouchCancel)
+    }
+  }, [activeTouchId, dragState])
 
   useEffect(() => {
     if (!dragState || !dragPointer || !touchDragRef.current?.activated) return
@@ -558,7 +678,7 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
     return () => window.cancelAnimationFrame(frameId)
   }, [dragPointer, dragState])
 
-  const handleDropOnAccount = async (targetAccount: PlanningAccount) => {
+  async function handleDropOnAccount(targetAccount: PlanningAccount) {
     if (!dragState || !statementPeriod || busy) return
     const targetPeriod = statementPeriod
     const sourceId = dragState.transaction.id
@@ -834,6 +954,7 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
                                     moved: false,
                                     activated: false,
                                   }
+                                  setActiveTouchId(touchId)
                                   touchHoldTimerRef.current = setTimeout(() => {
                                     const currentTouch = touchDragRef.current
                                     if (!currentTouch || currentTouch.id !== touchId) return
@@ -852,84 +973,10 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
                                     setBlockedMoveMessage(null)
                                   }, TOUCH_HOLD_TO_DRAG_MS)
                                 }}
-                                onTouchMove={(event: TouchEvent<HTMLDivElement>) => {
-                                  const touchDrag = touchDragRef.current
-                                  if (!touchDrag) return
-                                  const touch = Array.from(event.touches).find((item) => item.identifier === touchDrag.id)
-                                  if (!touch) return
-
-                                  if (!touchDrag.activated) {
-                                    const deltaX = touch.clientX - touchDrag.startX
-                                    const deltaY = touch.clientY - touchDrag.startY
-                                    if (Math.hypot(deltaX, deltaY) >= TOUCH_DRAG_THRESHOLD_PX) {
-                                      clearTouchHoldTimer()
-                                      touchDragRef.current = null
-                                      setDragPointer(null)
-                                    }
-                                    return
-                                  }
-
-                                  if (!touchDrag.moved) {
-                                    touchDragRef.current = { ...touchDrag, moved: true }
-                                  }
-
-                                  setDragPointer({ x: touch.clientX, y: touch.clientY })
-                                  maybeSwitchPeriodFromPointer(touch.clientX, event.timeStamp)
-
-                                  if (!dragState) return
-
-                                  const target = resolveDropTargetFromPoint(touch.clientX, touch.clientY)
-                                  if (!target) {
-                                    setActiveDropAccount(null)
-                                    setActiveDropCategoryKey(null)
-                                    return
-                                  }
-
-                                  if (
-                                    target.account !== dragState.sourceAccount &&
-                                    !canCrossAccountTransfer(target.account)
-                                  ) {
-                                    setActiveDropAccount(null)
-                                    setActiveDropCategoryKey(null)
-                                    return
-                                  }
-
-                                  setActiveDropAccount(target.account)
-                                  setActiveDropCategoryKey(target.category ? `${target.account}:${target.category}` : null)
-                                }}
-                                onTouchEnd={(event: TouchEvent<HTMLDivElement>) => {
-                                  const touchDrag = touchDragRef.current
-                                  if (!touchDrag) return
-                                  const touch = Array.from(event.changedTouches).find((item) => item.identifier === touchDrag.id)
-                                  clearTouchHoldTimer()
-                                  touchDragRef.current = null
-                                  if (!touch) return
-
-                                  if (!touchDrag.activated) {
-                                    setActiveDropAccount(null)
-                                    setActiveDropCategoryKey(null)
-                                    setDragPointer(null)
-                                    setDragState(null)
-                                    return
-                                  }
-
-                                  event.preventDefault()
-                                  suppressClickUntilRef.current = event.timeStamp + TOUCH_CLICK_SUPPRESS_MS
-
-                                  const target = resolveDropTargetFromPoint(touch.clientX, touch.clientY)
-                                  if (!target) {
-                                    setActiveDropAccount(null)
-                                    setActiveDropCategoryKey(null)
-                                    setDragPointer(null)
-                                    setDragState(null)
-                                    return
-                                  }
-
-                                  void handleDropOnAccount(target.account)
-                                }}
                                 onTouchCancel={() => {
                                   clearTouchHoldTimer()
                                   touchDragRef.current = null
+                                  setActiveTouchId(null)
                                   setActiveDropAccount(null)
                                   setActiveDropCategoryKey(null)
                                   setDragPointer(null)
