@@ -1,11 +1,12 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { criticalitySummaryQueryKeys } from '../api/criticalitySummaryQueryKeys.ts'
-import { fetchAccountTransactionsByCriticality, buildCriticalitySummary } from '../api/criticalitySummary.ts'
+import { buildCriticalitySummary } from '../api/criticalitySummary.ts'
 import type { CriticalitySummary } from '../api/criticalitySummary.types.ts'
 import { useProjectedTransactions } from '../../projectedTransactions/hooks/useProjectedTransactions'
 import type { BudgetTransaction } from '../api/transactions.types.ts'
 import type { ProjectedTransaction } from '../../projectedTransactions/api/projectedTransactions.types.ts'
+import { fetchAccountTransactions } from '../api/transactions.ts'
 
 export type CriticalitySummaries = {
   planned: CriticalitySummary
@@ -50,6 +51,11 @@ const getCriticalityId = (txn: ProjectedTransaction): number | undefined => {
   if (normalized === 'nonessential') return 2
   if (normalized === 'planned') return 3
   return undefined
+}
+
+const getActualCriticalityId = (txn: BudgetTransaction): number | undefined => {
+  const parsedId = typeof txn.criticality_id === 'number' ? txn.criticality_id : Number(txn.criticality_id)
+  return Number.isFinite(parsedId) ? parsedId : undefined
 }
 
 const buildByCategory = (args: {
@@ -103,53 +109,24 @@ export const useCriticalitySummaries = (account?: string, statementPeriod?: stri
     [projectedList]
   )
 
-  const essentialActualQuery = useQuery({
+  const actualTransactionsQuery = useQuery({
     queryKey:
       account && statementPeriod
-        ? [...criticalitySummaryQueryKeys.byAccountAndPeriod(account, statementPeriod), 'essential']
+        ? [...criticalitySummaryQueryKeys.byAccountAndPeriod(account, statementPeriod), 'all']
         : criticalitySummaryQueryKeys.all,
     queryFn: () => {
       if (!account || !statementPeriod) throw new Error('account and statementPeriod are required')
-      return fetchAccountTransactionsByCriticality({ account, statementPeriod, criticality: 'essential' })
-    },
-    enabled,
-  })
-
-  const nonessentialActualQuery = useQuery({
-    queryKey:
-      account && statementPeriod
-        ? [...criticalitySummaryQueryKeys.byAccountAndPeriod(account, statementPeriod), 'nonessential']
-        : criticalitySummaryQueryKeys.all,
-    queryFn: () => {
-      if (!account || !statementPeriod) throw new Error('account and statementPeriod are required')
-      return fetchAccountTransactionsByCriticality({ account, statementPeriod, criticality: 'nonessential' })
-    },
-    enabled,
-  })
-
-  const plannedActualQuery = useQuery({
-    queryKey:
-      account && statementPeriod
-        ? [...criticalitySummaryQueryKeys.byAccountAndPeriod(account, statementPeriod), 'planned']
-        : criticalitySummaryQueryKeys.all,
-    queryFn: async () => {
-      if (!account || !statementPeriod) throw new Error('account and statementPeriod are required')
-      // Some environments may not yet expose the planned bucket endpoint.
-      // Fall back to no actual planned transactions instead of failing the whole widget.
-      try {
-        return await fetchAccountTransactionsByCriticality({ account, statementPeriod, criticality: 'planned' })
-      } catch {
-        return []
-      }
+      return fetchAccountTransactions(account, { statementPeriod })
     },
     enabled,
   })
 
   const data: CriticalitySummaryDetails | undefined = useMemo(() => {
     if (!enabled) return undefined
-    const essentialActual = (essentialActualQuery.data ?? []) as BudgetTransaction[]
-    const nonessentialActual = (nonessentialActualQuery.data ?? []) as BudgetTransaction[]
-    const plannedActual = (plannedActualQuery.data ?? []) as BudgetTransaction[]
+    const allActual = actualTransactionsQuery.data?.transactions ?? []
+    const essentialActual = allActual.filter((t) => getActualCriticalityId(t) === 1)
+    const plannedActual = allActual.filter((t) => getActualCriticalityId(t) === 3)
+    const nonessentialActual = allActual.filter((t) => getActualCriticalityId(t) === 2)
     const plannedSummary = buildCriticalitySummary({ actual: plannedActual, projected: plannedProjected })
 
     const essentialSummary = buildCriticalitySummary({ actual: essentialActual, projected: essentialProjected })
@@ -174,9 +151,7 @@ export const useCriticalitySummaries = (account?: string, statementPeriod?: stri
     }
   }, [
     enabled,
-    essentialActualQuery.data,
-    nonessentialActualQuery.data,
-    plannedActualQuery.data,
+    actualTransactionsQuery.data,
     essentialProjected,
     plannedProjected,
     nonessentialProjected,
@@ -185,8 +160,8 @@ export const useCriticalitySummaries = (account?: string, statementPeriod?: stri
   return {
     data,
     isPending:
-      projectedQuery.isPending || essentialActualQuery.isPending || nonessentialActualQuery.isPending || plannedActualQuery.isPending,
-    isError: projectedQuery.isError || essentialActualQuery.isError || nonessentialActualQuery.isError,
-    error: projectedQuery.error ?? essentialActualQuery.error ?? nonessentialActualQuery.error,
+      projectedQuery.isPending || actualTransactionsQuery.isPending,
+    isError: projectedQuery.isError || actualTransactionsQuery.isError,
+    error: projectedQuery.error ?? actualTransactionsQuery.error,
   }
 }

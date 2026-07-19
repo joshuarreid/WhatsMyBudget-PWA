@@ -58,7 +58,7 @@ export function ProfileSwitcher() {
   const [hovered, setHovered] = useState<string | null>(null)
   const ref = useRef<HTMLDivElement>(null)
 
-  const hidden = route === '/chat' || route === '/login'
+  const hidden = route === '/' || route === '/chat' || route === '/login'
 
   // Clamp open state when hidden so we don't render an open menu if the route changes back.
   const isOpen = open && !hidden

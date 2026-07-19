@@ -9,6 +9,7 @@ import { BottomNav } from './components/BottomNav'
 import { SpendingAveragesPage } from './pages/SpendingAveragesPage'
 import { ProfileSwitcher } from './components/ProfileSwitcher'
 import { ChatPage } from './pages/ChatPage'
+import { PlanningPage } from './pages/PlanningPage'
 /*
 routes file
  */
@@ -16,18 +17,20 @@ const Routes = () => {
   const route = useCurrentRoute()
 
   if (route === '/login') {
-    if (session.isAuthenticated()) return <DashboardPage />
+    if (session.isAuthenticated()) return <PlanningPage />
     return <LoginPage />
   }
 
   return (
     <RequireAuth>
-      {route === '/spending-averages' ? (
+      {route === '/dashboard' ? (
+        <DashboardPage />
+      ) : route === '/spending-averages' ? (
         <SpendingAveragesPage />
       ) : route === '/chat' ? (
         <ChatPage />
       ) : (
-        <DashboardPage />
+        <PlanningPage />
       )}
       {route !== '/chat' ? <BottomNav /> : null}
     </RequireAuth>

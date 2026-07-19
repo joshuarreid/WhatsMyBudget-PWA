@@ -1,7 +1,7 @@
 import React from 'react' // Ensure React types are imported for JSX namespace
 import { useCurrentRoute, useNavigate } from '../pages/router'
 
-type NavRoute = '/' | '/spending-averages'
+type NavRoute = '/' | '/dashboard' | '/spending-averages'
 
 type NavItem = {
   route: NavRoute
@@ -23,6 +23,28 @@ const HomeIcon = ({ active }: { active: boolean }) => {
         d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5Z"
         stroke="currentColor"
         strokeWidth="2"
+        strokeLinejoin="round"
+        opacity={active ? 1 : 0.9}
+      />
+    </svg>
+  )
+}
+
+const CalendarIcon = ({ active }: { active: boolean }) => {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path
+        d="M7 3v3M17 3v3M4 9h16M6 5h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
         strokeLinejoin="round"
         opacity={active ? 1 : 0.9}
       />
@@ -66,12 +88,17 @@ export const BottomNav = () => {
 
   // Only show on authed pages
   const current: NavRoute =
-    route === '/spending-averages' ? '/spending-averages' : '/'
+    route === '/spending-averages' ? '/spending-averages' : route === '/dashboard' ? '/dashboard' : '/'
 
   const items: NavItem[] = [
     {
       route: '/',
-      label: 'Home',
+      label: 'Planning',
+      icon: (active) => <CalendarIcon active={active} />,
+    },
+    {
+      route: '/dashboard',
+      label: 'Dashboard',
       icon: (active) => <HomeIcon active={active} />,
     },
     {
