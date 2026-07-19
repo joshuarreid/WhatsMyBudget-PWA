@@ -26,6 +26,7 @@ export const useProjectedTransactions = (
       return fetchAccountProjectedTransactions(account, filters)
     },
     enabled: Boolean(account && account.trim().length > 0 && statementPeriod && String(statementPeriod).trim().length > 0),
+    placeholderData: (previous) => previous,
   })
 }
 

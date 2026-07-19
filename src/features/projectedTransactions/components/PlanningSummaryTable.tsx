@@ -12,11 +12,11 @@ const ACCOUNT_LABELS: Record<PlanningAccount, string> = {
   anna: 'Anna',
 }
 
-const ACCOUNT_ORDER: PlanningAccount[] = ['joint', 'josh', 'anna']
-type ExpandedState = Record<PlanningAccount, boolean>
+const ACCOUNT_ORDER = ['josh', 'anna'] as const
+type SummaryAccount = (typeof ACCOUNT_ORDER)[number]
+type ExpandedState = Record<SummaryAccount, boolean>
 
 const getDefaultExpandedState = (): ExpandedState => ({
-  joint: true,
   josh: true,
   anna: true,
 })
@@ -36,7 +36,7 @@ const TableView = ({ model }: { model: PlanningTopSummaryModel }) => {
   const initialExpanded = useMemo(() => getDefaultExpandedState(), [])
   const [expanded, setExpanded] = useState<ExpandedState>(initialExpanded)
 
-  const toggleRow = (account: PlanningAccount) => {
+  const toggleRow = (account: SummaryAccount) => {
     setExpanded((current) => ({
       ...current,
       [account]: !current[account],
