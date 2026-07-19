@@ -1645,35 +1645,11 @@ html, body, #root, .main-layout, .dashboard-page-root {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.tt-plan-account-row {
-  display: grid;
-  gap: 8px;
-  padding: 6px 0;
-  justify-items: center;
+.tt-horizontal-tri-ring {
+  margin-bottom: 12px;
 }
 
-.tt-plan-account-toggle {
-  display: inline-flex;
-  width: 100%;
-  justify-content: center;
-  align-items: center;
-  background: transparent;
-  border: 0;
-  color: var(--tt-color-text);
-  cursor: pointer;
-  padding: 0;
-  font: inherit;
-  font-weight: 900;
-  text-align: center;
-}
-
-.tt-plan-account-toggle:focus-visible {
-  outline: 2px solid rgba(141, 176, 255, 0.65);
-  outline-offset: 3px;
-  border-radius: 6px;
-}
-
-.tt-plan-account-row .tt-crit-stat {
+.tt-horizontal-tri-ring .tt-crit-stat {
   border: 0;
   background: transparent;
   padding: 0;
@@ -1681,7 +1657,7 @@ html, body, #root, .main-layout, .dashboard-page-root {
   align-items: center;
 }
 
-.tt-plan-account-row .tt-crit-tri-ring {
+.tt-horizontal-tri-ring .tt-crit-tri-ring {
   flex-direction: row;
   align-items: center;
   justify-content: center;
@@ -1690,35 +1666,35 @@ html, body, #root, .main-layout, .dashboard-page-root {
   margin: 0;
 }
 
-.tt-plan-account-row .tt-crit-ring-box {
+.tt-horizontal-tri-ring .tt-crit-ring-box {
   width: 96px;
 }
 
-.tt-plan-account-row .tt-crit-ring-box-planned {
+.tt-horizontal-tri-ring .tt-crit-ring-box-planned {
   margin-bottom: 0;
 }
 
-.tt-plan-account-row .tt-crit-dual-ring-inner {
+.tt-horizontal-tri-ring .tt-crit-dual-ring-inner {
   gap: 8px;
   align-items: center;
 }
 
-.tt-plan-account-row .tt-crit-ring {
+.tt-horizontal-tri-ring .tt-crit-ring {
   width: 88px;
   height: 88px;
   margin: 0;
 }
 
-.tt-plan-account-row .tt-crit-ring-inner {
+.tt-horizontal-tri-ring .tt-crit-ring-inner {
   width: 62px;
   height: 62px;
 }
 
-.tt-plan-account-row .tt-crit-title {
+.tt-horizontal-tri-ring .tt-crit-title {
   font-size: 12px;
 }
 
-.tt-plan-account-row .tt-crit-amount {
+.tt-horizontal-tri-ring .tt-crit-amount {
   font-size: 0.74rem;
 }
 

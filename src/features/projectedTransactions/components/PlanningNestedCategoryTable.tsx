@@ -1,14 +1,17 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
 import { config } from '@/config/env'
+import { Modal } from '@/components/Modal'
 import { useStatementPeriodStore } from '@/store/useStatementPeriodStore'
 import { addMonthsToStatementPeriod, parseStatementPeriod } from '@/utils/statementPeriodWindow'
-import { statementPeriodToLastDayInputDate } from '@/utils/statementPeriod'
+import { statementPeriodToLastDayInputDate, toInputDate } from '@/utils/statementPeriod'
+import { HorizontalTriRingStat } from '@/features/transactions/components/HorizontalTriRingStat'
 import {
   useCreateProjectedTransaction,
   useDeleteProjectedTransaction,
   useProjectedTransactions,
   useUpdateProjectedTransaction,
 } from '../hooks/useProjectedTransactions'
+import { usePlanningTopSummaries } from '../hooks/usePlanningTopSummaries'
 import type { ProjectedTransaction } from '../api/projectedTransactions.types'
 
 type PlanningAccount = 'joint' | 'josh' | 'anna'
@@ -17,8 +20,24 @@ type ExpandedState = Record<string, boolean>
 type DragState = {
   transaction: ProjectedTransaction
   sourceAccount: PlanningAccount
+  sourceTransactionAccount: string
   sourcePeriod: string
   lastPeriodSwitchAt: number
+}
+
+type FormState = {
+  id?: number
+  name: string
+  description: string
+  amount: string
+  category: string
+  projectedDate: string
+  statementPeriod: string
+  account: string
+  criticality_id?: number
+  paymentMethod: string
+  createdTime?: string
+  status?: string
 }
 
 const ACCOUNT_ORDER: PlanningAccount[] = ['joint', 'josh', 'anna']
@@ -35,6 +54,84 @@ const formatCurrency = (value: number) =>
   value.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
 
 const normalizeCategory = (value: unknown) => String(value ?? 'Uncategorized').trim() || 'Uncategorized'
+const normalizeAccount = (value: unknown) => String(value ?? '').trim().toLowerCase()
+const normalizeTextForMatch = (value: unknown) =>
+  String(value ?? '')
+    .replace(/\[split\]/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase()
+
+const normalizeCurrencyInput = (raw: string) => {
+  let s = raw.replace(/[^0-9.\-]/g, '')
+  s = s.replace(/(?!^)-/g, '')
+  const firstDot = s.indexOf('.')
+  if (firstDot !== -1) {
+    s = s.slice(0, firstDot + 1) + s.slice(firstDot + 1).replace(/\./g, '')
+  }
+  const parts = s.split('.')
+  if (parts.length === 2) {
+    parts[1] = parts[1].slice(0, 2)
+    s = `${parts[0]}.${parts[1]}`
+  }
+  return s
+}
+
+const formatCurrencyForInput = (value: string) => {
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  const num = Number(trimmed)
+  if (!Number.isFinite(num)) return trimmed
+  return num.toFixed(2)
+}
+
+const parseCurrencyAmount = (value: string) => {
+  const num = Number(value)
+  return Number.isFinite(num) ? num : NaN
+}
+
+const CRITICALITY_NAMES: Record<number, string> = {
+  1: 'Essential',
+  2: 'Nonessential',
+  3: 'Planned',
+}
+
+const CRITICALITY_IDS: Record<string, number> = {
+  Essential: 1,
+  Nonessential: 2,
+  Planned: 3,
+}
+
+const toFormState = (tx?: ProjectedTransaction): FormState => ({
+  id: tx?.id,
+  name: tx?.name ?? '',
+  description: tx?.description ?? '',
+  amount: tx?.amount != null ? String(tx.amount) : '',
+  category: tx?.category ?? '',
+  projectedDate: toInputDate(tx?.projectedDate ?? tx?.projectedTransactionDate ?? tx?.transactionDate),
+  statementPeriod: tx?.statementPeriod ?? '',
+  account: tx?.account ?? '',
+  criticality_id: tx?.criticality_id,
+  paymentMethod: tx?.paymentMethod ?? '',
+  createdTime: tx?.createdTime,
+  status: tx?.status,
+})
+
+const toApiPayload = (form: FormState): ProjectedTransaction => ({
+  id: form.id,
+  name: form.name.trim() || undefined,
+  description: form.description.trim() || undefined,
+  amount: Number(form.amount),
+  category: normalizeCategory(form.category),
+  projectedDate: form.projectedDate,
+  transactionDate: form.projectedDate,
+  statementPeriod: form.statementPeriod.trim(),
+  account: form.account.trim(),
+  criticality_id: form.criticality_id ?? 2,
+  paymentMethod: form.paymentMethod.trim(),
+  createdTime: form.createdTime,
+  status: form.status,
+})
 
 const toProjectedDate = (tx: ProjectedTransaction, period: string) =>
   tx.projectedDate ?? tx.projectedTransactionDate ?? tx.transactionDate ?? statementPeriodToLastDayInputDate(period)
@@ -75,6 +172,21 @@ const buildSectionRows = (transactions: ProjectedTransaction[]) => {
     })
 }
 
+const toCriticalitySummary = (
+  model: ReturnType<typeof usePlanningTopSummaries>['model'],
+  account: PlanningAccount,
+  metric: 'planned' | 'essential' | 'nonessential'
+) => {
+  const row = model.rows.find((r) => r.metric === metric)
+  const cell = row?.byAccount[account]
+  return {
+    actualCount: 0,
+    projectedCount: 0,
+    actualTotal: cell?.actual ?? 0,
+    projectedTotal: cell?.projected ?? 0,
+  }
+}
+
 export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeriod?: string }) => {
   const setSelectedPeriod = useStatementPeriodStore((s) => s.setSelectedPeriod)
   const setAvailablePeriods = useStatementPeriodStore((s) => s.setAvailablePeriods)
@@ -86,14 +198,23 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
   const createMutation = useCreateProjectedTransaction()
   const deleteMutation = useDeleteProjectedTransaction()
   const updateMutation = useUpdateProjectedTransaction()
+  const planningSummary = usePlanningTopSummaries(statementPeriod)
 
   const [expanded, setExpanded] = useState<ExpandedState>({})
   const [dragState, setDragState] = useState<DragState | null>(null)
   const [activeDropAccount, setActiveDropAccount] = useState<PlanningAccount | null>(null)
   const [activeDropCategoryKey, setActiveDropCategoryKey] = useState<string | null>(null)
   const [moveError, setMoveError] = useState<string | null>(null)
+  const [blockedMoveMessage, setBlockedMoveMessage] = useState<string | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selected, setSelected] = useState<ProjectedTransaction | undefined>(undefined)
+  const [form, setForm] = useState<FormState>(() => toFormState())
+  const [formError, setFormError] = useState<string | null>(null)
 
   const busy = createMutation.isPending || deleteMutation.isPending || updateMutation.isPending
+  const categories = config.categories
+  const paymentMethods = config.paymentMethods
+  const defaultCriticalityMap = config.defaultCriticalityMap
 
   const byAccount = useMemo(() => {
     return {
@@ -109,6 +230,102 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
   const toggleCategory = (account: PlanningAccount, category: string) => {
     const key = `${account}:${category}`
     setExpanded((current) => ({ ...current, [key]: !(current[key] ?? true) }))
+  }
+
+  const resolveJointSourceForSplit = (tx: ProjectedTransaction, sectionAccount: PlanningAccount): ProjectedTransaction => {
+    if (sectionAccount === 'joint') return tx
+
+    const txName = normalizeTextForMatch(tx.name)
+    const txDesc = normalizeTextForMatch(tx.description)
+    const txCategory = normalizeCategory(tx.category).toLowerCase()
+    const txDate = toProjectedDate(tx, tx.statementPeriod)
+    const txCriticality = tx.criticality_id ?? 2
+    const txAmount = Number(tx.amount) || 0
+
+    const looksSplit =
+      String(tx.name ?? '').toLowerCase().includes('[split]') ||
+      String(tx.description ?? '').toLowerCase().includes('[split]')
+
+    if (!looksSplit) return tx
+
+    const jointTransactions = jointQuery.data?.projectedTransactions ?? []
+    const exactNameAndDescMatch = jointTransactions.find((candidate) => {
+      const sameCategory = normalizeCategory(candidate.category).toLowerCase() === txCategory
+      const sameCriticality = (candidate.criticality_id ?? 2) === txCriticality
+      const sameDate = toProjectedDate(candidate, candidate.statementPeriod) === txDate
+      const candidateName = normalizeTextForMatch(candidate.name)
+      const candidateDesc = normalizeTextForMatch(candidate.description)
+      const sameName = txName.length > 0 && candidateName === txName
+      const sameDesc = txDesc.length > 0 && candidateDesc === txDesc
+      const amountClose = Math.abs((Number(candidate.amount) || 0) - txAmount * 2) < 0.01
+      return sameCategory && sameCriticality && sameDate && amountClose && (sameName || sameDesc)
+    })
+    if (exactNameAndDescMatch) return exactNameAndDescMatch
+
+    const fallbackByAmountAndMeta = jointTransactions.find((candidate) => {
+      const sameCategory = normalizeCategory(candidate.category).toLowerCase() === txCategory
+      const sameCriticality = (candidate.criticality_id ?? 2) === txCriticality
+      const sameDate = toProjectedDate(candidate, candidate.statementPeriod) === txDate
+      const amountClose = Math.abs((Number(candidate.amount) || 0) - txAmount * 2) < 0.01
+      return sameCategory && sameCriticality && sameDate && amountClose
+    })
+    return fallbackByAmountAndMeta ?? tx
+  }
+
+  const openEdit = (tx: ProjectedTransaction, sectionAccount: PlanningAccount) => {
+    const resolvedTx = resolveJointSourceForSplit(tx, sectionAccount)
+    const next = toFormState(resolvedTx)
+    if (!next.projectedDate && next.statementPeriod) {
+      next.projectedDate = statementPeriodToLastDayInputDate(next.statementPeriod)
+    }
+    setSelected(resolvedTx)
+    setForm(next)
+    setFormError(null)
+    setIsModalOpen(true)
+  }
+
+  const closeModal = () => {
+    if (busy) return
+    setIsModalOpen(false)
+  }
+
+  const handleCategoryChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    const category = normalizeCategory(event.target.value)
+    const mapped = defaultCriticalityMap[category]
+    setForm((current) => ({
+      ...current,
+      category,
+      criticality_id: mapped ? CRITICALITY_IDS[mapped] : current.criticality_id,
+    }))
+  }
+
+  const onSubmit = async (event: FormEvent) => {
+    event.preventDefault()
+    setFormError(null)
+    setForm((current) => ({ ...current, amount: formatCurrencyForInput(normalizeCurrencyInput(current.amount)) }))
+
+    if (!form.account.trim() || !form.statementPeriod.trim() || !form.projectedDate || !form.category.trim() || !Number.isFinite(parseCurrencyAmount(form.amount))) {
+      setFormError('Please fill out all required fields.')
+      return
+    }
+
+    const payload = toApiPayload({
+      ...form,
+      amount: formatCurrencyForInput(normalizeCurrencyInput(form.amount)),
+    })
+
+    try {
+      const id = String(selected?.id ?? payload.id ?? '')
+      if (!id) {
+        setFormError('Missing transaction id.')
+        return
+      }
+      await updateMutation.mutateAsync({ id, data: payload })
+      setIsModalOpen(false)
+      setSelected(undefined)
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Request failed.')
+    }
   }
 
   const ensurePeriodExists = (period: string) => {
@@ -134,6 +351,15 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
     ensurePeriodExists(targetPeriod)
     setSelectedPeriod(targetPeriod)
     setDragState((current) => (current ? { ...current, lastPeriodSwitchAt: now } : current))
+  }
+
+  const canCrossAccountTransfer = (targetAccount: PlanningAccount) => {
+    if (!dragState) return false
+    return (
+      dragState.sourceAccount === 'joint' &&
+      dragState.sourceTransactionAccount === 'joint' &&
+      (targetAccount === 'josh' || targetAccount === 'anna')
+    )
   }
 
   const handleDropOnAccount = async (targetAccount: PlanningAccount, targetCategory?: string) => {
@@ -170,6 +396,14 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
         }
         return
       }
+      setActiveDropCategoryKey(null)
+      setActiveDropAccount(null)
+      setDragState(null)
+      return
+    }
+
+    if (targetAccount !== dragState.sourceAccount && !canCrossAccountTransfer(targetAccount)) {
+      setBlockedMoveMessage('Only Joint rows can be moved to Josh or Anna. Split rows in Josh/Anna cannot move across owners.')
       setActiveDropCategoryKey(null)
       setActiveDropAccount(null)
       setDragState(null)
@@ -235,9 +469,11 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
             key={account}
             className={`tt-plan-nested-section ${activeDropAccount === account ? 'tt-plan-nested-section-active' : ''}`}
             onDragOver={(event) => {
-              event.preventDefault()
-              setActiveDropAccount(account)
-              setActiveDropCategoryKey(null)
+              if (!dragState || account === dragState.sourceAccount || canCrossAccountTransfer(account)) {
+                event.preventDefault()
+                setActiveDropAccount(account)
+                setActiveDropCategoryKey(null)
+              }
             }}
             onDragLeave={() => {
               setActiveDropAccount((current) => (current === account ? null : current))
@@ -249,6 +485,13 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
             }}
           >
             <h3 className="tt-plan-nested-header">{ACCOUNT_LABELS[account]}</h3>
+            {!planningSummary.isPending && !planningSummary.isError ? (
+              <HorizontalTriRingStat
+                planned={toCriticalitySummary(planningSummary.model, account, 'planned')}
+                essential={toCriticalitySummary(planningSummary.model, account, 'essential')}
+                nonessential={toCriticalitySummary(planningSummary.model, account, 'nonessential')}
+              />
+            ) : null}
             {byAccount[account].length === 0 ? (
               <p className="tt-empty">No projected transactions.</p>
             ) : (
@@ -294,21 +537,32 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
                                 key={key}
                                 className="tt-plan-nested-item"
                                 draggable={!busy}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => openEdit(tx, account)}
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Enter' || event.key === ' ') {
+                                    event.preventDefault()
+                                    openEdit(tx, account)
+                                  }
+                                }}
                                 onDragStart={() => {
                                   setDragState({
                                     transaction: tx,
                                     sourceAccount: account,
+                                    sourceTransactionAccount: normalizeAccount(tx.account),
                                     sourcePeriod: statementPeriod,
                                     lastPeriodSwitchAt: 0,
                                   })
                                   setMoveError(null)
+                                  setBlockedMoveMessage(null)
                                 }}
                                 onDragEnd={() => {
                                   setActiveDropCategoryKey(null)
                                   setActiveDropAccount(null)
                                   setDragState(null)
                                 }}
-                              >
+    >
                                 <span className="tt-plan-nested-item-title">{title}</span>
                                 <strong>{formatCurrency(Number(tx.amount) || 0)}</strong>
                               </div>
@@ -324,6 +578,117 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
           </section>
         ))}
       </div>
+      <Modal isOpen={isModalOpen} title="Edit projected transaction" onClose={closeModal}>
+        <form className="tt-proj-form" onSubmit={onSubmit}>
+          {formError ? <div className="tt-error">{formError}</div> : null}
+          <div className="tt-proj-form-grid">
+            <label className="tt-proj-field">
+              <span className="tt-proj-label">Statement period</span>
+              <input className="tt-proj-input" value={form.statementPeriod} disabled readOnly />
+            </label>
+
+            <label className="tt-proj-field">
+              <span className="tt-proj-label">Name</span>
+              <input
+                className="tt-proj-input"
+                value={form.name}
+                onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+                placeholder="Optional"
+              />
+            </label>
+
+            <label className="tt-proj-field">
+              <span className="tt-proj-label">Amount *</span>
+              <div className="tt-proj-money">
+                <span className="tt-proj-money-prefix">$</span>
+                <input
+                  className="tt-proj-input tt-proj-money-input"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  value={form.amount}
+                  onChange={(event) => {
+                    const next = normalizeCurrencyInput(event.target.value)
+                    setForm((current) => ({ ...current, amount: next }))
+                  }}
+                  onBlur={() => {
+                    setForm((current) => ({ ...current, amount: formatCurrencyForInput(current.amount) }))
+                  }}
+                  placeholder="0.00"
+                  required
+                />
+              </div>
+            </label>
+
+            <label className="tt-proj-field">
+              <span className="tt-proj-label">Category *</span>
+              <select className="tt-proj-input" value={form.category} onChange={handleCategoryChange} required>
+                <option value="" disabled>Select a category…</option>
+                {categories.map((category) => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+            </label>
+
+            <label className="tt-proj-field">
+              <span className="tt-proj-label">Criticality</span>
+              <select
+                className="tt-proj-input"
+                value={form.criticality_id ?? ''}
+                onChange={(event) => {
+                  const value = event.target.value
+                  setForm((current) => ({ ...current, criticality_id: value ? Number(value) : undefined }))
+                }}
+              >
+                <option value="">—</option>
+                {Object.entries(CRITICALITY_NAMES).map(([id, name]) => (
+                  <option key={id} value={id}>{name}</option>
+                ))}
+              </select>
+            </label>
+
+            <label className="tt-proj-field">
+              <span className="tt-proj-label">Payment method</span>
+              <select
+                className="tt-proj-input"
+                value={form.paymentMethod}
+                onChange={(event) => setForm((current) => ({ ...current, paymentMethod: event.target.value }))}
+              >
+                <option value="">—</option>
+                {paymentMethods.map((paymentMethod) => (
+                  <option key={paymentMethod} value={paymentMethod}>{paymentMethod}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <div className="tt-proj-form-actions">
+            <button type="button" className="tt-proj-secondary" onClick={closeModal} disabled={busy}>
+              Cancel
+            </button>
+            <button type="submit" className="tt-proj-primary" disabled={busy}>
+              {updateMutation.isPending ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+      <Modal
+        isOpen={Boolean(blockedMoveMessage)}
+        title="Move not allowed"
+        onClose={() => setBlockedMoveMessage(null)}
+      >
+        <p className="tt-empty" style={{ marginBottom: 12 }}>{blockedMoveMessage}</p>
+        <div className="tt-proj-form-actions">
+          <button
+            type="button"
+            className="tt-proj-primary"
+            onClick={() => setBlockedMoveMessage(null)}
+          >
+            OK
+          </button>
+        </div>
+      </Modal>
     </section>
   )
 }

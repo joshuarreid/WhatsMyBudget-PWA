@@ -1,7 +1,6 @@
 import { MainLayout } from '../layouts/MainLayout'
 import {
   PlanningNestedCategoryTable,
-  PlanningSummaryTable,
 } from '@/features/projectedTransactions'
 import { useStatementPeriodStore } from '../store/useStatementPeriodStore'
 import './DashboardPage.css'
@@ -14,10 +13,6 @@ export const PlanningPage = () => {
       <div className="dashboard-page-root">
         <div className="tt-card" style={{ minHeight: 'auto' }}>
           <div className="tt-subcard">
-            <PlanningSummaryTable statementPeriod={selectedPeriod} />
-          </div>
-          <div className="tt-subcard">
-            <div className="tt-section-title">Planning Transactions</div>
             <PlanningNestedCategoryTable statementPeriod={selectedPeriod} />
           </div>
         </div>
