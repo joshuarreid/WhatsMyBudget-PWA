@@ -532,6 +532,32 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
     }
   }, [])
 
+  useEffect(() => {
+    if (!dragState || !dragPointer || !touchDragRef.current?.activated) return
+
+    let frameId = 0
+
+    const tick = () => {
+      const main = document.querySelector('main') as HTMLElement | null
+      if (main) {
+        const rect = main.getBoundingClientRect()
+        const nearTop = dragPointer.y <= rect.top + VERTICAL_SCROLL_HOTZONE_PX
+        const nearBottom = dragPointer.y >= rect.bottom - VERTICAL_SCROLL_HOTZONE_PX
+
+        if (nearTop && main.scrollTop > 0) {
+          main.scrollTop = Math.max(0, main.scrollTop - VERTICAL_SCROLL_STEP_PX)
+        } else if (nearBottom && main.scrollTop + main.clientHeight < main.scrollHeight) {
+          main.scrollTop = Math.min(main.scrollHeight, main.scrollTop + VERTICAL_SCROLL_STEP_PX)
+        }
+      }
+
+      frameId = window.requestAnimationFrame(tick)
+    }
+
+    frameId = window.requestAnimationFrame(tick)
+    return () => window.cancelAnimationFrame(frameId)
+  }, [dragPointer, dragState])
+
   const handleDropOnAccount = async (targetAccount: PlanningAccount) => {
     if (!dragState || !statementPeriod || busy) return
     const targetPeriod = statementPeriod
@@ -849,7 +875,6 @@ export const PlanningNestedCategoryTable = ({ statementPeriod }: { statementPeri
 
                                   setDragPointer({ x: touch.clientX, y: touch.clientY })
                                   maybeSwitchPeriodFromPointer(touch.clientX, event.timeStamp)
-                                  maybeAutoScrollFromPointer(touch.clientY)
 
                                   if (!dragState) return
 
