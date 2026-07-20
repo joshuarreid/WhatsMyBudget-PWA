@@ -8,9 +8,9 @@ const formatCurrency = (value: number) =>
 
 const formatProfileLabel = (profile: string) => profile.charAt(0).toUpperCase() + profile.slice(1)
 
-const buildTrend = (current: number, previous: number, windowTotal: number) => {
-  const delta = current - previous
-  const percent = windowTotal !== 0 ? (delta / windowTotal) * 100 : null
+const buildAverageTrend = (currentAverage: number, previousAverage: number) => {
+  const delta = currentAverage - previousAverage
+  const percent = previousAverage !== 0 ? (delta / previousAverage) * 100 : currentAverage !== 0 ? 100 : null
   return {
     delta,
     percent,
@@ -21,7 +21,8 @@ const buildTrend = (current: number, previous: number, windowTotal: number) => {
 export const MonthlySpendingTrendGraph = () => {
   const profile = useProfileStore((state) => state.profile)
   const [monthCount, setMonthCount] = useState<3 | 6>(6)
-  const { data, allTimeTotals, isPending, isError } = useMonthlySpendingTrends(profile, monthCount)
+  const { data, isPending, isError } = useMonthlySpendingTrends(profile, monthCount)
+  const { data: comparisonData } = useMonthlySpendingTrends(profile, monthCount * 2)
 
   const maxTotal = useMemo(() => data.reduce((max, point) => Math.max(max, point.totalAmount), 0), [data])
   const stats = useMemo(() => buildMonthlySpendingTrendStats(data), [data])
@@ -51,13 +52,35 @@ export const MonthlySpendingTrendGraph = () => {
   })
   const linePath = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ')
 
-  const latest = data.at(-1)
-  const first = data[0]
-  const allTimeTotalAmount =
-    allTimeTotals.essentialAmount + allTimeTotals.nonessentialAmount + allTimeTotals.plannedAmount
-  const monthlyTrend = buildTrend(latest?.totalAmount ?? 0, first?.totalAmount ?? 0, allTimeTotalAmount)
-  const essentialTrend = buildTrend(latest?.essentialAmount ?? 0, first?.essentialAmount ?? 0, allTimeTotals.essentialAmount)
-  const nonessentialTrend = buildTrend(latest?.nonessentialAmount ?? 0, first?.nonessentialAmount ?? 0, allTimeTotals.nonessentialAmount)
+  const previousWindowPoints = useMemo(() => {
+    if (comparisonData.length < monthCount * 2) return []
+    return comparisonData.slice(0, monthCount)
+  }, [comparisonData, monthCount])
+
+  const previousWindowAverages = useMemo(() => {
+    if (previousWindowPoints.length === 0) {
+      return { monthly: 0, essential: 0, nonessential: 0 }
+    }
+
+    const totals = previousWindowPoints.reduce(
+      (acc, point) => ({
+        monthly: acc.monthly + point.totalAmount,
+        essential: acc.essential + point.essentialAmount,
+        nonessential: acc.nonessential + point.nonessentialAmount,
+      }),
+      { monthly: 0, essential: 0, nonessential: 0 }
+    )
+
+    return {
+      monthly: totals.monthly / previousWindowPoints.length,
+      essential: totals.essential / previousWindowPoints.length,
+      nonessential: totals.nonessential / previousWindowPoints.length,
+    }
+  }, [previousWindowPoints])
+
+  const monthlyTrend = buildAverageTrend(stats.monthlyAverage, previousWindowAverages.monthly)
+  const essentialTrend = buildAverageTrend(stats.essentialAverage, previousWindowAverages.essential)
+  const nonessentialTrend = buildAverageTrend(stats.nonessentialAverage, previousWindowAverages.nonessential)
 
   const trendTone = (direction: 'growing' | 'decreasing' | 'flat') =>
     direction === 'decreasing' ? '#1fbf75' : direction === 'growing' ? '#f87171' : 'rgba(230,238,248,0.65)'
