@@ -7,8 +7,6 @@ import { buildProjectedSpendingChartData } from '../utils/projectedSpendingChart
 const formatCurrency = (value: number) =>
   value.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 
-const formatProfileLabel = (profile: string) => profile.charAt(0).toUpperCase() + profile.slice(1)
-
 export const ProjectedSpendingBarChart = () => {
   const profile = useProfileStore((state) => state.profile)
   const [selectedSegment, setSelectedSegment] = useState<{
@@ -36,12 +34,6 @@ export const ProjectedSpendingBarChart = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', gap: 12 }}>
         <div>
           <div style={{ fontWeight: 950, letterSpacing: '0.02em' }}>Projected monthly spending</div>
-          <div style={{ color: 'rgba(230,238,248,0.65)', fontSize: 13 }}>
-            Current profile: {formatProfileLabel(profile)}
-          </div>
-        </div>
-        <div style={{ color: 'rgba(230,238,248,0.65)', fontSize: 13 }}>
-          {chartData.length} month{chartData.length === 1 ? '' : 's'}
         </div>
       </div>
 
