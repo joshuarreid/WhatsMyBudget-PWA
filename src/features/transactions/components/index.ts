@@ -5,4 +5,5 @@ export * from './TriRingStat';
 export * from './HorizontalTriRingStat';
 export * from './NestedCategoryTable';
 export * from './SpendingAveragesStatCards';
+export * from './ProjectedSpendingBarChart';
 export * from './TransactionList';

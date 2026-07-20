@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useRef, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react'
 import { session } from '../features/auth/api/session.ts'
 import { useInitStatementPeriod } from '../store/useInitStatementPeriod'
 import { useStatementPeriodStore } from '../store/useStatementPeriodStore'
@@ -206,6 +206,59 @@ const StickyDropdown = () => {
 export const MainLayout = ({ children, hideStatementPeriodChooser }: MainLayoutProps) => {
   useInitStatementPeriod()
   const authed = session.isAuthenticated()
+  const route = useCurrentRoute()
+  const availablePeriods = useStatementPeriodStore((s) => s.availablePeriods)
+  const selectedPeriod = useStatementPeriodStore((s) => s.selectedPeriod)
+  const setSelectedPeriod = useStatementPeriodStore((s) => s.setSelectedPeriod)
+  const swipeStartRef = useRef<{ x: number; y: number } | null>(null)
+
+  const shouldHandleSwipe = route === '/' || route === '/dashboard'
+
+  const shiftStatementPeriod = (direction: 'prev' | 'next') => {
+    if (!selectedPeriod || availablePeriods.length === 0) return
+    const currentIndex = availablePeriods.indexOf(selectedPeriod)
+    if (currentIndex === -1) return
+    const nextIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1
+    if (nextIndex < 0 || nextIndex >= availablePeriods.length) return
+    setSelectedPeriod(availablePeriods[nextIndex])
+  }
+
+  const onMainTouchStart = (event: ReactTouchEvent<HTMLElement>) => {
+    if (!shouldHandleSwipe || event.touches.length !== 1) return
+    const target = event.target as HTMLElement | null
+    if (!target) return
+    if (
+      target.closest('.tt-modal') ||
+      target.closest('.tt-plan-period-scroll') ||
+      target.closest('input, textarea, select, button, [role="button"]')
+    ) {
+      return
+    }
+    const touch = event.touches[0]
+    swipeStartRef.current = { x: touch.clientX, y: touch.clientY }
+  }
+
+  const onMainTouchEnd = (event: ReactTouchEvent<HTMLElement>) => {
+    if (!shouldHandleSwipe) return
+    const start = swipeStartRef.current
+    swipeStartRef.current = null
+    if (!start || event.changedTouches.length === 0) return
+
+    const touch = event.changedTouches[0]
+    const deltaX = touch.clientX - start.x
+    const deltaY = touch.clientY - start.y
+
+    const horizontalThreshold = 56
+    if (Math.abs(deltaX) < horizontalThreshold) return
+    if (Math.abs(deltaX) <= Math.abs(deltaY) * 1.2) return
+
+    if (deltaX < 0) {
+      shiftStatementPeriod('next')
+    } else {
+      shiftStatementPeriod('prev')
+    }
+  }
+
   return (
     <div
       style={{
@@ -220,6 +273,8 @@ export const MainLayout = ({ children, hideStatementPeriodChooser }: MainLayoutP
       <Header authed={authed} />
       {!hideStatementPeriodChooser ? <StickyDropdown /> : null}
       <main
+        onTouchStart={onMainTouchStart}
+        onTouchEnd={onMainTouchEnd}
         style={{
           padding: '1rem',
           paddingBottom: '110px',
