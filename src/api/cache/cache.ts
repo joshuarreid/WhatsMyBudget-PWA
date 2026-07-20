@@ -38,10 +38,11 @@ export const fetchCurrentStatementPeriod = async (): Promise<CurrentStatementPer
 export const updateCurrentStatementPeriod = async (
   statementPeriod: string
 ): Promise<CurrentStatementPeriodResponse> => {
-  const response = await cacheApiClient.put<unknown>(
-    `${cacheBasePath}/currentStatementPeriod`,
-    { statementPeriod }
-  )
+  const searchParams = new URLSearchParams({
+    cacheKey: 'currentStatementPeriod',
+    cacheValue: statementPeriod,
+  })
+  const response = await cacheApiClient.post<unknown>(`${cacheBasePath}?${searchParams.toString()}`)
   if (response.data == null || response.data === '') {
     return { statementPeriod }
   }

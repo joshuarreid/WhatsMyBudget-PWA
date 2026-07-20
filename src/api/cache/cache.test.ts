@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 const cacheApiClientMock = vi.hoisted(() => ({
   get: vi.fn(),
-  put: vi.fn(),
+  post: vi.fn(),
 }))
 
 vi.mock('./cacheApiClient', () => ({
@@ -25,12 +25,12 @@ describe('fetchCurrentStatementPeriod', () => {
 
 describe('updateCurrentStatementPeriod', () => {
   it('updates the v2 cache endpoint with the selected statement period', async () => {
-    cacheApiClientMock.put.mockResolvedValueOnce({ data: { statementPeriod: 'MAY2026' } })
+    cacheApiClientMock.post.mockResolvedValueOnce({ data: { cacheValue: 'MAY2026' } })
 
     await updateCurrentStatementPeriod('MAY2026')
 
-    expect(cacheApiClientMock.put).toHaveBeenCalledWith('/api/v2/cache/currentStatementPeriod', {
-      statementPeriod: 'MAY2026',
-    })
+    expect(cacheApiClientMock.post).toHaveBeenCalledWith(
+      '/api/v2/cache?cacheKey=currentStatementPeriod&cacheValue=MAY2026'
+    )
   })
 })
