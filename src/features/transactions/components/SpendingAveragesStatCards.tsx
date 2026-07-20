@@ -4,9 +4,8 @@ import { Modal } from '@/components/Modal'
 import { useStatements } from '@/features/statements'
 import { parseStatementPeriod } from '@/utils/statementPeriodWindow'
 import { fetchAccountTransactions } from '../api/transactions'
-import type { BudgetTransaction } from '../api/transactions.types.ts'
+import type { BudgetTransaction } from '../api/transactions.types'
 import { useCalculateWeeks } from '../hooks/useCalculateWeeks'
-import { useWeeklyAverage } from '../hooks/useWeeklyAverage'
 import { TransactionList } from './TransactionList'
 
 type MetricKey = 'food' | 'gas' | 'social' | 'diningOut' | 'groceries'
@@ -52,6 +51,9 @@ const buildTrend = (current: number, baseline: number) => {
 const trendTone = (direction: 'growing' | 'decreasing' | 'flat') =>
   direction === 'decreasing' ? '#1fbf75' : direction === 'growing' ? '#f87171' : 'rgba(230,238,248,0.65)'
 
+const sumAmounts = (items: BudgetTransaction[]) =>
+  items.reduce((sum, item) => sum + (typeof item.amount === 'number' ? item.amount : 0), 0)
+
 export const SpendingAveragesStatCards = ({
   account,
   selectedPeriod,
@@ -89,41 +91,49 @@ export const SpendingAveragesStatCards = ({
   })
 
   const comparisonTransactions = comparisonQuery.data ?? []
+  const currentWeeks = useCalculateWeeks(transactions)
+  const comparisonWeeks = useCalculateWeeks(comparisonTransactions)
+  const currentWeekCount = currentWeeks.length
+  const comparisonWeekCount = comparisonWeeks.length
 
   const gasTransactions = transactions.filter((t) => classifyMetric(t.category) === 'gas')
-  const gasWeeks = useCalculateWeeks(gasTransactions)
-  const gasWeeklyAverage = useWeeklyAverage(gasWeeks)
+  const gasTotal = sumAmounts(gasTransactions)
+  const gasWeeklyAverage = currentWeekCount > 0 ? gasTotal / currentWeekCount : 0
   const gasComparisonTransactions = comparisonTransactions.filter((t) => classifyMetric(t.category) === 'gas')
-  const gasComparisonWeeks = useCalculateWeeks(gasComparisonTransactions)
-  const gasComparisonWeeklyAverage = useWeeklyAverage(gasComparisonWeeks)
+  const gasComparisonTotal = sumAmounts(gasComparisonTransactions)
+  const gasComparisonWeeklyAverage = comparisonWeekCount > 0 ? gasComparisonTotal / comparisonWeekCount : 0
   const gasTrend = buildTrend(gasWeeklyAverage, gasComparisonWeeklyAverage)
 
   const diningOutTransactions = transactions.filter((t) => classifyMetric(t.category) === 'diningOut')
-  const diningOutWeeks = useCalculateWeeks(diningOutTransactions)
-  const diningOutWeeklyAverage = useWeeklyAverage(diningOutWeeks)
+  const diningOutTotal = sumAmounts(diningOutTransactions)
+  const diningOutWeeklyAverage = currentWeekCount > 0 ? diningOutTotal / currentWeekCount : 0
   const diningOutComparisonTransactions = comparisonTransactions.filter((t) => classifyMetric(t.category) === 'diningOut')
-  const diningOutComparisonWeeks = useCalculateWeeks(diningOutComparisonTransactions)
-  const diningOutComparisonWeeklyAverage = useWeeklyAverage(diningOutComparisonWeeks)
+  const diningOutComparisonTotal = sumAmounts(diningOutComparisonTransactions)
+  const diningOutComparisonWeeklyAverage =
+    comparisonWeekCount > 0 ? diningOutComparisonTotal / comparisonWeekCount : 0
   const diningOutTrend = buildTrend(diningOutWeeklyAverage, diningOutComparisonWeeklyAverage)
 
   const groceriesTransactions = transactions.filter((t) => classifyMetric(t.category) === 'groceries')
-  const groceriesWeeks = useCalculateWeeks(groceriesTransactions)
-  const groceriesWeeklyAverage = useWeeklyAverage(groceriesWeeks)
+  const groceriesTotal = sumAmounts(groceriesTransactions)
+  const groceriesWeeklyAverage = currentWeekCount > 0 ? groceriesTotal / currentWeekCount : 0
   const groceriesComparisonTransactions = comparisonTransactions.filter((t) => classifyMetric(t.category) === 'groceries')
-  const groceriesComparisonWeeks = useCalculateWeeks(groceriesComparisonTransactions)
-  const groceriesComparisonWeeklyAverage = useWeeklyAverage(groceriesComparisonWeeks)
+  const groceriesComparisonTotal = sumAmounts(groceriesComparisonTransactions)
+  const groceriesComparisonWeeklyAverage =
+    comparisonWeekCount > 0 ? groceriesComparisonTotal / comparisonWeekCount : 0
   const groceriesTrend = buildTrend(groceriesWeeklyAverage, groceriesComparisonWeeklyAverage)
 
   const socialTransactions = transactions.filter((t) => classifyMetric(t.category) === 'social')
-  const socialWeeks = useCalculateWeeks(socialTransactions)
-  const socialWeeklyAverage = useWeeklyAverage(socialWeeks)
+  const socialTotal = sumAmounts(socialTransactions)
+  const socialWeeklyAverage = currentWeekCount > 0 ? socialTotal / currentWeekCount : 0
   const socialComparisonTransactions = comparisonTransactions.filter((t) => classifyMetric(t.category) === 'social')
-  const socialComparisonWeeks = useCalculateWeeks(socialComparisonTransactions)
-  const socialComparisonWeeklyAverage = useWeeklyAverage(socialComparisonWeeks)
+  const socialComparisonTotal = sumAmounts(socialComparisonTransactions)
+  const socialComparisonWeeklyAverage =
+    comparisonWeekCount > 0 ? socialComparisonTotal / comparisonWeekCount : 0
   const socialTrend = buildTrend(socialWeeklyAverage, socialComparisonWeeklyAverage)
 
   const foodWeeklyAverage = diningOutWeeklyAverage + groceriesWeeklyAverage
   const foodComparisonWeeklyAverage = diningOutComparisonWeeklyAverage + groceriesComparisonWeeklyAverage
+  const foodTotal = diningOutTotal + groceriesTotal
   const foodTrend = buildTrend(foodWeeklyAverage, foodComparisonWeeklyAverage)
 
   const [modalMetric, setModalMetric] = useState<MetricKey | null>(null)
@@ -217,7 +227,7 @@ export const SpendingAveragesStatCards = ({
               {formatMoney(gasWeeklyAverage)}
             </div>
             <div style={{ fontSize: 12, color: 'rgba(230,238,248,0.60)', marginTop: 4, textAlign: 'center' }}>
-              {gasWeeks.length} weeks · {formatMoney(gasWeeks.reduce((sum, w) => sum + w.totalAmount, 0))}
+              {currentWeekCount} weeks · {formatMoney(gasTotal)}
             </div>
             <div style={{ fontSize: 12, fontWeight: 700, color: trendTone(gasTrend.direction) }}>
               {gasTrend.direction === 'growing' ? '↑' : gasTrend.direction === 'decreasing' ? '↓' : '•'}{' '}
@@ -257,7 +267,7 @@ export const SpendingAveragesStatCards = ({
               {formatMoney(diningOutWeeklyAverage + groceriesWeeklyAverage)}
             </div>
             <div style={{ fontSize: 12, color: 'rgba(230,238,248,0.60)', marginTop: 4, textAlign: 'center' }}>
-              {Math.max(diningOutWeeks.length, groceriesWeeks.length)} weeks · {formatMoney(diningOutWeeks.reduce((sum, w) => sum + w.totalAmount, 0) + groceriesWeeks.reduce((sum, w) => sum + w.totalAmount, 0))}
+              {currentWeekCount} weeks · {formatMoney(foodTotal)}
             </div>
             <div style={{ fontSize: 12, fontWeight: 700, color: trendTone(foodTrend.direction) }}>
               {foodTrend.direction === 'growing' ? '↑' : foodTrend.direction === 'decreasing' ? '↓' : '•'}{' '}
@@ -297,7 +307,7 @@ export const SpendingAveragesStatCards = ({
               {formatMoney(diningOutWeeklyAverage)}
             </div>
             <div style={{ fontSize: 12, color: 'rgba(230,238,248,0.60)', marginTop: 4, textAlign: 'center' }}>
-              {diningOutWeeks.length} weeks · {formatMoney(diningOutWeeks.reduce((sum, w) => sum + w.totalAmount, 0))}
+              {currentWeekCount} weeks · {formatMoney(diningOutTotal)}
             </div>
             <div style={{ fontSize: 12, fontWeight: 700, color: trendTone(diningOutTrend.direction) }}>
               {diningOutTrend.direction === 'growing' ? '↑' : diningOutTrend.direction === 'decreasing' ? '↓' : '•'}{' '}
@@ -337,7 +347,7 @@ export const SpendingAveragesStatCards = ({
               {formatMoney(groceriesWeeklyAverage)}
             </div>
             <div style={{ fontSize: 12, color: 'rgba(230,238,248,0.60)', marginTop: 4, textAlign: 'center' }}>
-              {groceriesWeeks.length} weeks · {formatMoney(groceriesWeeks.reduce((sum, w) => sum + w.totalAmount, 0))}
+              {currentWeekCount} weeks · {formatMoney(groceriesTotal)}
             </div>
             <div style={{ fontSize: 12, fontWeight: 700, color: trendTone(groceriesTrend.direction) }}>
               {groceriesTrend.direction === 'growing' ? '↑' : groceriesTrend.direction === 'decreasing' ? '↓' : '•'}{' '}
@@ -377,7 +387,7 @@ export const SpendingAveragesStatCards = ({
               {formatMoney(socialWeeklyAverage)}
             </div>
             <div style={{ fontSize: 12, color: 'rgba(230,238,248,0.60)', marginTop: 4, textAlign: 'center' }}>
-              {socialWeeks.length} weeks · {formatMoney(socialWeeks.reduce((sum, w) => sum + w.totalAmount, 0))}
+              {currentWeekCount} weeks · {formatMoney(socialTotal)}
             </div>
             <div style={{ fontSize: 12, fontWeight: 700, color: trendTone(socialTrend.direction) }}>
               {socialTrend.direction === 'growing' ? '↑' : socialTrend.direction === 'decreasing' ? '↓' : '•'}{' '}

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useProfileStore } from '@/store/useProfileStore'
-import { useMonthlySpendingTrends } from '../hooks/useMonthlySpendingTrends.ts'
+import { useMonthlySpendingTrends } from '../hooks'
 import { buildMonthlySpendingTrendStats } from '../utils/monthlySpendingTrend'
 
 const formatCurrency = (value: number) =>
@@ -203,7 +203,7 @@ export const MonthlySpendingTrendGraph = () => {
             }}
           >
             <div style={{ padding: 14, borderRadius: 14, background: 'rgba(255,255,255,0.03)' }}>
-              <div style={{ fontSize: 12, color: 'rgba(230,238,248,0.65)' }}>Monthly average</div>
+              <div style={{ fontSize: 12, color: 'rgba(230,238,248,0.65)' }}>{monthCount} Month Monthly average</div>
               <div style={{ fontSize: 20, fontWeight: 900 }}>{formatCurrency(stats.monthlyAverage)}</div>
               <div style={{ fontSize: 12, fontWeight: 700, color: trendTone(monthlyTrend.direction) }}>
                 {monthlyTrend.direction === 'growing' ? '↑' : monthlyTrend.direction === 'decreasing' ? '↓' : '•'}{' '}
@@ -212,7 +212,7 @@ export const MonthlySpendingTrendGraph = () => {
             </div>
 
             <div style={{ padding: 14, borderRadius: 14, background: 'rgba(255,255,255,0.03)' }}>
-              <div style={{ fontSize: 12, color: 'rgba(230,238,248,0.65)' }}>Essential average</div>
+              <div style={{ fontSize: 12, color: 'rgba(230,238,248,0.65)' }}>{monthCount} Month Essential average</div>
               <div style={{ fontSize: 20, fontWeight: 900 }}>{formatCurrency(stats.essentialAverage)}</div>
               <div style={{ fontSize: 12, fontWeight: 700, color: trendTone(essentialTrend.direction) }}>
                 {essentialTrend.direction === 'growing' ? '↑' : essentialTrend.direction === 'decreasing' ? '↓' : '•'}{' '}
@@ -221,7 +221,7 @@ export const MonthlySpendingTrendGraph = () => {
             </div>
 
             <div style={{ padding: 14, borderRadius: 14, background: 'rgba(255,255,255,0.03)' }}>
-              <div style={{ fontSize: 12, color: 'rgba(230,238,248,0.65)' }}>Nonessential average</div>
+              <div style={{ fontSize: 12, color: 'rgba(230,238,248,0.65)' }}>{monthCount} Month Nonessential average</div>
               <div style={{ fontSize: 20, fontWeight: 900 }}>{formatCurrency(stats.nonessentialAverage)}</div>
               <div style={{ fontSize: 12, fontWeight: 700, color: trendTone(nonessentialTrend.direction) }}>
                 {nonessentialTrend.direction === 'growing' ? '↑' : nonessentialTrend.direction === 'decreasing' ? '↓' : '•'}{' '}
