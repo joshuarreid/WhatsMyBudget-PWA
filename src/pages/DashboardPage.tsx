@@ -45,6 +45,8 @@ export const DashboardPage = () => {
                 />
               )}
               <SpendingAveragesStatCards
+                account={selectedAccount}
+                selectedPeriod={selectedPeriod}
                 transactions={sortedActualTransactions}
                 isPending={transactionsLoading}
                 isError={transactionsError}
