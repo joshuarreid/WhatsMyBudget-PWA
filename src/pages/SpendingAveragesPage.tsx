@@ -4,7 +4,7 @@ import { MonthlySpendingTrendGraph } from '@/features/analytics'
 
 export function SpendingAveragesPage() {
   return (
-    <MainLayout>
+    <MainLayout hideStatementPeriodChooser>
       <div style={{ padding: 16, display: 'grid', gap: 16 }}>
         <ProjectedSpendingBarChart />
         <MonthlySpendingTrendGraph />

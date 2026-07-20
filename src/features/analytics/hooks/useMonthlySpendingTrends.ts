@@ -6,7 +6,13 @@ import {
   fetchAnalyticsRangeOverview,
 } from '@/api/analytics/analytics.ts'
 import type { AnalyticsCriticalityBreakdownResponse, AnalyticsPeriodOverviewResponse } from '@/api/analytics/analytics.types.ts'
-import { buildLastSixMonthRanges, type MonthlySpendingTrendPoint } from '../utils/monthlySpendingTrend'
+import { useStatements } from '@/features/statements/hooks/useStatements.ts'
+import {
+  buildLastSixMonthRanges,
+  sumCriticalityAmountAcrossPeriods,
+  sumCriticalityAmount,
+  type MonthlySpendingTrendPoint,
+} from '../utils/monthlySpendingTrend'
 
 const toTrendPoint = (
   range: ReturnType<typeof buildLastSixMonthRanges>[number],
@@ -15,13 +21,22 @@ const toTrendPoint = (
 ): MonthlySpendingTrendPoint => ({
   ...range,
   totalAmount: response?.totalAmount ?? 0,
-  essentialAmount: criticality?.find((entry) => entry.criticality === 'Essential')?.totalAmount ?? 0,
-  nonessentialAmount: criticality?.find((entry) => entry.criticality === 'Nonessential')?.totalAmount ?? 0,
+  essentialAmount: sumCriticalityAmount(criticality, 'Essential'),
+  nonessentialAmount: sumCriticalityAmount(criticality, 'Nonessential'),
+  plannedAmount: sumCriticalityAmount(criticality, 'Planned'),
   transactionCount: response?.transactionCount ?? 0,
 })
 
 export const useMonthlySpendingTrends = (account: string, monthCount: number) => {
+  const statementsQuery = useStatements()
   const ranges = useMemo(() => buildLastSixMonthRanges(undefined, monthCount), [monthCount])
+  const allStatementPeriods = useMemo(
+    () =>
+      (statementsQuery.data ?? [])
+        .map((period) => period.periodName.trim())
+        .filter((period) => Boolean(period)),
+    [statementsQuery.data]
+  )
 
   const query = useQuery({
     queryKey: [
@@ -43,8 +58,30 @@ export const useMonthlySpendingTrends = (account: string, monthCount: number) =>
     placeholderData: (previous) => previous,
   })
 
+  const allTimeCriticalityTotals = useQuery({
+    queryKey: [...analyticsQueryKeys.all, 'monthly-spending-trends', 'all-time-criticality-totals', account, ...allStatementPeriods],
+    queryFn: async () => {
+      const criticalityResponses = await Promise.all(
+        allStatementPeriods.map((period) => fetchAnalyticsPeriodCriticality(period, { account }))
+      )
+
+      return {
+        essentialAmount: sumCriticalityAmountAcrossPeriods(criticalityResponses, 'Essential'),
+        nonessentialAmount: sumCriticalityAmountAcrossPeriods(criticalityResponses, 'Nonessential'),
+        plannedAmount: sumCriticalityAmountAcrossPeriods(criticalityResponses, 'Planned'),
+      }
+    },
+    enabled: Boolean(account && account.trim() && allStatementPeriods.length > 0),
+    placeholderData: (previous) => previous,
+  })
+
   return {
     ...query,
     data: query.data ?? ranges.map((range) => toTrendPoint(range, undefined, undefined)),
+    allTimeTotals: allTimeCriticalityTotals.data ?? {
+      essentialAmount: 0,
+      nonessentialAmount: 0,
+      plannedAmount: 0,
+    },
   }
 }

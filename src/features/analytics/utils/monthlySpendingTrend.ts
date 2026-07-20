@@ -9,6 +9,7 @@ export type MonthlySpendingTrendPoint = MonthlySpendingTrendRange & {
   totalAmount: number
   essentialAmount: number
   nonessentialAmount: number
+  plannedAmount: number
   transactionCount: number
 }
 
@@ -21,6 +22,28 @@ export type MonthlySpendingTrendStats = {
   trendPercent: number | null
   trend: 'growing' | 'decreasing' | 'flat'
 }
+
+export const normalizeCriticalityLabel = (value: unknown): string =>
+  String(value ?? '')
+    .trim()
+    .toLowerCase()
+
+export const sumCriticalityAmount = (
+  entries: Array<{ criticality: string; totalAmount: number }> | undefined,
+  criticality: string
+): number =>
+  entries?.reduce((sum, entry) => {
+    if (normalizeCriticalityLabel(entry.criticality) !== normalizeCriticalityLabel(criticality)) {
+      return sum
+    }
+
+    return sum + (Number(entry.totalAmount) || 0)
+  }, 0) ?? 0
+
+export const sumCriticalityAmountAcrossPeriods = (
+  periods: Array<Array<{ criticality: string; totalAmount: number }> | undefined>,
+  criticality: string
+): number => periods.reduce((sum, entries) => sum + sumCriticalityAmount(entries, criticality), 0)
 
 const formatDateOnly = (date: Date): string => {
   const yyyy = date.getFullYear()
@@ -77,12 +100,7 @@ export const buildMonthlySpendingTrendStats = (
   const latest = points.at(-1) ?? first
   const trendAmount = latest.totalAmount - first.totalAmount
 
-  let trendPercent: number | null = null
-  if (first.totalAmount !== 0) {
-    trendPercent = (trendAmount / first.totalAmount) * 100
-  } else if (latest.totalAmount !== 0 && first.totalAmount === 0) {
-    trendPercent = 100
-  }
+  const trendPercent = totalAmount !== 0 ? (trendAmount / totalAmount) * 100 : null
 
   const trend = trendAmount > 0 ? 'growing' : trendAmount < 0 ? 'decreasing' : 'flat'
 
